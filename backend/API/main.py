@@ -5,6 +5,7 @@ from database import get_db_pool
 import logging
 from routes.admin.gestionUsuarios import router as gestionUsuario_router
 from routes.admin.gestionSuscripciones import router as gestionSuscripciones_router
+from routes.admin.panelControl import router as panelControl_router
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -27,6 +28,7 @@ app.include_router(system_router)
 
 app.include_router(gestionUsuario_router)
 app.include_router(gestionSuscripciones_router)
+app.include_router(panelControl_router)
 
 
 # Evento de inicio de la aplicación para establecer el pool de conexiones
