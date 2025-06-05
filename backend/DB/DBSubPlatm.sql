@@ -3,7 +3,7 @@ CREATE DATABASE IF NOT EXISTS SubscriptionPlatform;
 USE SubscriptionPlatform;
 
 
-CREATE TABLE USER(
+CREATE TABLE User(
 	UserId INT PRIMARY KEY AUTO_INCREMENT,
     Name VARCHAR(150) NOT NULL,
     Email VARCHAR(150) NOT NULL UNIQUE,
@@ -40,7 +40,7 @@ CREATE TABLE Subscription(
     Status VARCHAR(20) DEFAULT 'active' CHECK (Status IN ('active','cancelled','expired')),
     AmountPaid DECIMAL(10,2) NOT NULL,
     PaymentMethod VARCHAR(20) CHECK (PaymentMethod IN ('card','cash','wallet')) NOT NULL,
-    CONSTRAINT FK_User_Subscription FOREIGN KEY (UserId) REFERENCES USER(UserId),
+    CONSTRAINT FK_User_Subscription FOREIGN KEY (UserId) REFERENCES User(UserId),
     CONSTRAINT FK_Plan_Subscription FOREIGN KEY (PlanId) REFERENCES Plan(PlanId)
 );
 
@@ -52,7 +52,7 @@ CREATE TABLE PaymentMethod(
     CardHolder VARCHAR(150),
     ExpiryDate VARCHAR(7),
     WalletBalance DECIMAL(10,2) DEFAULT 0,
-    CONSTRAINT FK_User_PaymentMethod FOREIGN KEY (UserId) REFERENCES USER(UserId)
+    CONSTRAINT FK_User_PaymentMethod FOREIGN KEY (UserId) REFERENCES User(UserId)
 );
 
 CREATE TABLE WalletTransaction(
@@ -61,7 +61,7 @@ CREATE TABLE WalletTransaction(
     Type VARCHAR(20) CHECK (Type IN ('recharge','deduction')) NOT NULL,
     Amount DECIMAL(10,2) NOT NULL,
     TransactionDate DATETIME DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT FK_User_WalletTransaction FOREIGN KEY (UserId) REFERENCES USER(UserId)
+    CONSTRAINT FK_User_WalletTransaction FOREIGN KEY (UserId) REFERENCES User(UserId)
 );
 
 CREATE TABLE Notification(
@@ -71,7 +71,7 @@ CREATE TABLE Notification(
     Type VARCHAR(30) CHECK (Type IN ('expiration','payment_confirmation','other')) NOT NULL,
     NotificationDate DATETIME DEFAULT CURRENT_TIMESTAMP,
     ReadStatus VARCHAR(10) DEFAULT 'no' CHECK (ReadStatus IN ('yes','no')),
-    CONSTRAINT FK_User_Notification FOREIGN KEY (UserId) REFERENCES USER(UserId)
+    CONSTRAINT FK_User_Notification FOREIGN KEY (UserId) REFERENCES User(UserId)
 );
 
 

@@ -1,0 +1,17 @@
+# Archivos y directorios de Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+
+# Entorno virtual
+venv
+.env
+
+# Archivos de configuración
+README.md
+.gitignore
+.dockerignore
