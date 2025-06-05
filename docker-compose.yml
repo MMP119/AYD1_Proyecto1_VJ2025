@@ -9,3 +9,32 @@ services:
         - "3306:3306"  # Mapea el puerto 3306 del contenedor al puerto 3306 de la máquina local
       volumes:
         - ./backend/DB/DBSubPlatm.sql:/docker-entrypoint-initdb.d/init.sql
+      healthcheck:
+        test: ["CMD", "mysql", "-h", "localhost", "-uroot", "-panalisis1-2025", "-e", "SELECT 1"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
+        start_period: 30s
+      networks:
+        - ayd-net
+
+  api:
+    build:
+      context: ./backend/API
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/API/.env
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend/API:/app
+    ports:
+      - "8000:8000"  
+    networks:
+      - ayd-net
+
+networks:
+  ayd-net:
+    driver: bridge
