@@ -1,13 +1,29 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import AuthInput from "../../components/AuthInput";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
+
+  const users = [
+    {
+      name: "admin",
+      email: "admin@admin.com",
+      password: "admin",
+      role: "admin",
+    },
+    {
+      name: "user",
+      email: "user@user.com",
+      password: "user",
+      role: "user",
+    },
+  ];
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -18,7 +34,6 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    // Validación básica
     if (!form.email || !form.password) {
       setError("Todos los campos son obligatorios");
       setLoading(false);
@@ -26,17 +41,19 @@ export default function Login() {
     }
 
     try {
-      const storedUser = JSON.parse(localStorage.getItem("user"));
-      
-      if (!storedUser || storedUser.email !== form.email || storedUser.password !== form.password) {
+      const matchedUser = users.find(
+        (u) => u.email === form.email && u.password === form.password
+      );
+
+      if (!matchedUser) {
         throw new Error("Credenciales incorrectas");
       }
 
-      toast.success("Inicio de sesión exitoso");
-      navigate(storedUser.role === "admin" ? "/admin/dashboard" : "/user/dashboard");
+      login(matchedUser);
+
+      navigate(matchedUser.role === "admin" ? "/admin/dashboard" : "/user/dashboard");
     } catch (err) {
       setError(err.message);
-      toast.error(err.message);
     } finally {
       setLoading(false);
     }

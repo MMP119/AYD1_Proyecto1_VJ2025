@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
 import AuthInput from "../../components/AuthInput";
 
 export default function Register() {
@@ -61,17 +60,13 @@ export default function Register() {
         })
       );
 
-      toast.success("¡Usuario creado exitosamente!");
-
       // Esperar un momento antes de redirigir
       setTimeout(() => {
         navigate("/");
       }, 2000); // Redirige a login en 2 segundos
     } catch (err) {
       setError("Error en el registro. Intenta nuevamente.");
-      toast.error("Error en el registro");
     }
-
   };
 
   return (
