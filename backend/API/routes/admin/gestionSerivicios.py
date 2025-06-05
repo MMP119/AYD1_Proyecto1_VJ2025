@@ -25,8 +25,15 @@ async def listar_servicios(request: Request):
 
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cursor:
-                await cursor.execute("SELECT * FROM Service")
+                get_services_sql = """
+                    SELECT s.ServiceId, s.Name, s.Category, s.Description, 
+                            p.Type AS PlanType, p.Price
+                    FROM Service s
+                    JOIN Plan p ON s.ServiceId = p.ServiceId
+                """
+                await cursor.execute(get_services_sql)
                 servicios = await cursor.fetchall()
+
                 return {"servicios": servicios}
                 
     except Exception as e:
