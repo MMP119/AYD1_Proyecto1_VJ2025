@@ -2,6 +2,8 @@ import { Routes, Route } from "react-router-dom";
 import Login from "../pages/Auth/Login";
 import Register from "../pages/Auth/Register";
 import UserManagement from "../pages/admin/UserManagement";
+import AdminDashboard from "../pages/admin/Dashboard";
+import UserDashboard from "../pages/user/Dashboard";
 import ProtectedRoute from "../components/ProtectedRoute";
 
 export default function AppRoutes() {
@@ -14,6 +16,15 @@ export default function AppRoutes() {
         path="/admin/dashboard"
         element={
           <ProtectedRoute role="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+        <Route
+        path="/admin/user-management"
+        element={
+          <ProtectedRoute role="admin">
             <UserManagement />
           </ProtectedRoute>
         }
@@ -23,10 +34,19 @@ export default function AppRoutes() {
         path="/user/dashboard"
         element={
           <ProtectedRoute role="user">
-            <UserManagement />
+            <UserDashboard />
           </ProtectedRoute>
         }
       />
+
+        <Route
+        path="/user/subscription"
+        element={
+          <ProtectedRoute role="user">
+            <UserDashboard />
+          </ProtectedRoute>
+        }
+        />
 
     </Routes>
   );

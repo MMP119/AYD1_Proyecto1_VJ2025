@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DashboardLayout from "../../components/DashboardLayout";
 
 export default function UserManagement() {
   const [users, setUsers] = useState([
@@ -35,7 +36,7 @@ export default function UserManagement() {
   };
 
   return (
-    <div className="p-6">
+    <DashboardLayout>
       <h1 className="text-2xl font-bold mb-4">Gestión de Usuarios</h1>
 
       {users.length === 0 ? (
@@ -79,6 +80,6 @@ export default function UserManagement() {
           </tbody>
         </table>
       )}
-    </div>
+    </DashboardLayout>
   );
 }
