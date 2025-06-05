@@ -9,6 +9,10 @@ export default function Sidebar() {
     ? [
         { path: "/admin/dashboard", label: "Dashboard" },
         { path: "/admin/user-management", label: "Gestión de Usuarios" },
+        { path: "/admin/subscription-management", label: "Gestión de Suscripciones" },
+        { path: "/admin/service-management", label: "Gestión de Servicios" },
+        { path: "/admin/control-panel", label: "Panel de Control" },
+        { path: "/admin/reports", label: "Reportes" },
       ]
     : [
         { path: "/user/dashboard", label: "Dashboard" },
