@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.sistema import router as system_router
 from database import get_db_pool
 import logging
+from routes.admin.gestionUsuarios import router as gestionUsuario_router
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +24,7 @@ app.add_middleware(
 app.include_router(system_router)
 # app.include_router(user_router)
 # app.include_router(admin_router)
+app.include_router(gestionUsuario_router)
 
 
 # Evento de inicio de la aplicación para establecer el pool de conexiones

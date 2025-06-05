@@ -8,7 +8,7 @@ services:
       ports:
         - "3306:3306"  # Mapea el puerto 3306 del contenedor al puerto 3306 de la máquina local
       volumes:
-        - ./backend/DB/DBSubPlatm.sql:/docker-entrypoint-initdb.d/init.sql
+        - ./backend/DB/DBSubPlatm.sql:/docker-entrypoint-initdb.d/init.sql:Z
       healthcheck:
         test: ["CMD", "mysql", "-h", "localhost", "-uroot", "-panalisis1-2025", "-e", "SELECT 1"]
         interval: 10s
@@ -29,7 +29,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./backend/API:/app
+      - ./backend/API:/app:Z
     ports:
       - "8000:8000"  
     networks:
