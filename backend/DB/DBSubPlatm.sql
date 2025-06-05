@@ -12,7 +12,7 @@ CREATE TABLE User(
     AccountStatus VARCHAR(20) DEFAULT 'active' CHECK (AccountStatus IN ('active','deactivated','deleted')),
     Password VARCHAR(250) NOT NULL,
     ConfirmedEmail VARCHAR(20) DEFAULT 'no' CHECK(ConfirmedEmail IN ('yes','no'))NOT NULL,
-    User VARCHAR(20) NOT NULL UNIQUE,
+    Username VARCHAR(20) NOT NULL UNIQUE,
     RegisterDate DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
