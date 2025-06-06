@@ -9,6 +9,11 @@ import UserDashboard from "../pages/user/Dashboard";
 import ProtectedRoute from "../components/ProtectedRoute";
 import AdminControlPanel from "../pages/admin/AdminControlPanel";
 import AdminReports from "../pages/admin/AdminReports";
+import UserServiceExplorer from "../pages/user/UserServiceExplorer";
+import UserSubscriptionManager from "../pages/user/UserSubscriptionManager";
+import UserPaymentMethods from "../pages/user/UserPaymentMethods";
+import UserExpenseTracking from "../pages/user/UserExpenseTracking";
+import Perfil from "../pages/user/Perfil";
 
 export default function AppRoutes() {
   return (
@@ -16,7 +21,7 @@ export default function AppRoutes() {
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* Admin Routes */}
+      {/* ----------------------------------------------- Admin Routes */}
 
       <Route
         path="/admin/dashboard"
@@ -72,7 +77,7 @@ export default function AppRoutes() {
         }
       />
 
-        {/* User Routes */}
+        {/* ----------------------------------------------- User Routes */}
 
       <Route
         path="/user/dashboard"
@@ -84,14 +89,50 @@ export default function AppRoutes() {
       />
 
         <Route
+        path="/user/service-explorer"
+        element={
+          <ProtectedRoute role="user">
+            <UserServiceExplorer />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/user/subscription"
         element={
           <ProtectedRoute role="user">
-            <UserDashboard />
+            <UserSubscriptionManager />
           </ProtectedRoute>
         }
-        />
+      />
 
+      <Route
+        path="/user/payment-methods"
+        element={
+          <ProtectedRoute role="user">
+            <UserPaymentMethods />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/user/expense-tracking"
+        element={
+          <ProtectedRoute role="user">
+            <UserExpenseTracking />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/user/profile"
+        element={
+          <ProtectedRoute role="user">
+            <Perfil />
+          </ProtectedRoute>
+        }
+      />
+      
     </Routes>
   );
 }

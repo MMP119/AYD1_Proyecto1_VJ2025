@@ -16,7 +16,11 @@ export default function Sidebar() {
       ]
     : [
         { path: "/user/dashboard", label: "Dashboard" },
+        { path: "/user/service-explorer", label: "Explorar Servicios" },
         { path: "/user/subscription", label: "Mis Suscripciones" },
+        { path: "/user/payment-methods", label: "Métodos de Pago" },
+        { path: "/user/expense-tracking", label: "Seguimiento de Gastos" },
+        { path: "/user/profile", label: "Perfil" },
       ];
 
   return (
