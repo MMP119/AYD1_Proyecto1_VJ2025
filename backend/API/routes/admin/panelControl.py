@@ -47,7 +47,7 @@ async def obtener_metricas(request: Request):
                 #  tomamos StartDate como fecha de cobro; agrupamos por año-mes usando DATE_FORMAT
                 ingresos_sql = """
                     SELECT
-                        DATE_FORMAT(StartDate, '%%Y-%%m') AS mes,
+                        DATE_FORMAT(StartDate, '%Y-%m') AS mes,
                         SUM(AmountPaid) AS ingresos
                     FROM Subscription
                     GROUP BY mes
