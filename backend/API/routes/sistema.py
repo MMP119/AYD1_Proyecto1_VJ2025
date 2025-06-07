@@ -41,6 +41,11 @@ async def register_user(request: Request, user_data: UserData):
             existing_user = await cursor.fetchone()
             if existing_user:
                 raise HTTPException(status_code=400, detail="El usuario ya existe")
+            
+            await cursor.execute("SELECT * FROM User WHERE Username = %s", (user_data.username,))
+            existing_username = await cursor.fetchone()
+            if existing_username:
+                raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso")
 
             # Hahsear la contraseña con bcrypt
             hashed_password = bcrypt.hashpw(user_data.password.encode('utf-8'), bcrypt.gensalt())
@@ -52,6 +57,8 @@ async def register_user(request: Request, user_data: UserData):
             await conn.commit()
 
         return {"status": "success", "message": "Usuario registrado exitosamente"}
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error al registrar usuario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -76,15 +83,18 @@ async def login_user(request: Request, login_data: LoginUser):
             if not bcrypt.checkpw(login_data.password.encode('utf-8'), hashed_password.encode('utf-8')):
                 raise HTTPException(status_code=400, detail="Credenciales incorrectas")
             
-            if user[4] or user[5] == 'inactive':
-                raise HTTPException(status_code=403, detail="Usuario inactivo o pendiente de activación")
+            activo = False if user[4] or user[5] == 'inactive' else True
 
             return {
                 "status": "success",
                 "message": "Login exitoso",
                 "user_id": user[0], 
-                "rol": user[4]       
+                "user_rol": user[3],
+                "activo": activo     
             }
+        
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error al iniciar sesión: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -117,6 +127,9 @@ async def update_user(request: Request, user_id: int, update_data: UpdateUserDat
             await conn.commit()
 
         return {"status": "success", "message": "Usuario actualizado exitosamente"}
+    
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error al actualizar usuario: {e}")
         raise HTTPException(status_code=500, detail=str(e))
