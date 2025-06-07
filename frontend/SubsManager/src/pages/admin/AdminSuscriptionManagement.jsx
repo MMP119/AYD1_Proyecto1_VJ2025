@@ -1,68 +1,65 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
+import url_fetch from '../../enviroment';
 
 export default function AdminSubscriptionManagement() {
-    // Datos quemados 
-    const fakeSubscriptions = [
-        {
-            id: 1,
-            user: "Ana Pérez",
-            email: "ana@correo.com",
-            service: "Netflix",
-            category: "Streaming",
-            status: "activa",
-            dueDate: "2025-07-01",
-        },
-        {
-            id: 2,
-            user: "Luis Martínez",
-            email: "luis@correo.com",
-            service: "Dropbox",
-            category: "Almacenamiento",
-            status: "vencida",
-            dueDate: "2025-05-01",
-        },
-        {
-            id: 3,
-            user: "Sofía García",
-            email: "sofia@correo.com",
-            service: "Spotify",
-            category: "Música",
-            status: "cancelada",
-            dueDate: "2025-06-15",
-        },
-        {
-            id: 4,
-            user: "Luis Martínez",
-            email: "luis@correo.com",
-            service: "HBO Max",
-            category: "Streaming",
-            status: "activa",
-            dueDate: "2025-08-10",
-        },
-    ];
-
+    const [subscriptions, setSubscriptions] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState("todos");
     const [categoryFilter, setCategoryFilter] = useState("todos");
-    const [dueDateFilter, setDueDateFilter] = useState(""); 
+    const [dateType, setDateType] = useState("end");
+    const [dateFrom, setDateFrom] = useState("");
+    const [dateTo, setDateTo] = useState("");
 
+    // Obtener suscripciones del backend
+    useEffect(() => {
+        const fetchSubscriptions = async () => {
+            try {
+                const response = await fetch(`${url_fetch}/admin/suscripciones`);
+                const data = await response.json();
+                setSubscriptions(data.suscripciones || []);
+            } catch (error) {
+                setSubscriptions([]);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchSubscriptions();
+    }, []);
+
+    // Obtener categorías únicas
+    const categories = useMemo(() => {
+        const setCat = new Set(subscriptions.map(sub => sub.category));
+        return ["todos", ...Array.from(setCat)];
+    }, [subscriptions]);
+
+    // Filtrado
     const filteredSubscriptions = useMemo(() => {
-        return fakeSubscriptions.filter((sub) => {
-            const matchStatus = statusFilter === "todos" || sub.status === statusFilter;
+        return subscriptions.filter((sub) => {
+            const matchStatus = statusFilter === "todos" || sub.Status === statusFilter || sub.status === statusFilter;
             const matchCategory = categoryFilter === "todos" || sub.category === categoryFilter;
-            const matchDueDate =
-                !dueDateFilter || sub.dueDate === dueDateFilter;
-            return matchStatus && matchCategory && matchDueDate;
+            let matchDate = true;
+            const dateField = dateType === "start" ? sub.StartDate : sub.EndDate;
+            if (dateFrom) {
+                matchDate = dateField && dateField.slice(0, 10) >= dateFrom;
+            }
+            if (matchDate && dateTo) {
+                matchDate = dateField && dateField.slice(0, 10) <= dateTo;
+            }
+            return matchStatus && matchCategory && matchDate;
         });
-    }, [statusFilter, categoryFilter, dueDateFilter]);
+    }, [subscriptions, statusFilter, categoryFilter, dateType, dateFrom, dateTo]);
 
     const getStatusColor = (status) => {
         switch (status) {
+            case "active":
             case "activa":
                 return "text-green-600 font-semibold";
             case "vencida":
+            case "expired":
                 return "text-red-600 font-semibold";
             case "cancelada":
+            case "cancelled":
                 return "text-gray-600 font-semibold";
             default:
                 return "";
@@ -84,9 +81,9 @@ export default function AdminSubscriptionManagement() {
                     className="border px-3 py-2 rounded-md"
                 >
                     <option value="todos">Todos los estados</option>
-                    <option value="activa">Activa</option>
-                    <option value="cancelada">Cancelada</option>
-                    <option value="vencida">Vencida</option>
+                    <option value="active">Activa</option>
+                    <option value="cancelled">Cancelada</option>
+                    <option value="expired">Vencida</option>
                 </select>
 
                 <select
@@ -95,66 +92,93 @@ export default function AdminSubscriptionManagement() {
                     className="border px-3 py-2 rounded-md"
                 >
                     <option value="todos">Todas las categorías</option>
-                    <option value="Streaming">Streaming</option>
-                    <option value="Almacenamiento">Almacenamiento</option>
-                    <option value="Música">Música</option>
+                    {categories.slice(1).map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                    ))}
                 </select>
 
-                {/* Filtro por fecha de vencimiento */}
-                <input
-                    type="date"
-                    value={dueDateFilter}
-                    onChange={(e) => setDueDateFilter(e.target.value)}
+                {/* Combo para tipo de fecha y filtro de fecha */}
+                <select
+                    value={dateType}
+                    onChange={e => setDateType(e.target.value)}
                     className="border px-3 py-2 rounded-md"
-                    placeholder="Fecha de vencimiento"
-                />
-                {dueDateFilter && (
+                >
+                    <option value="end">Fecha de vencimiento</option>
+                    <option value="start">Fecha de inicio</option>
+                </select>
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">
+                        Filtrar <b>{dateType === "end" ? "fecha de vencimiento" : "fecha de inicio"}</b> de
+                    </span>
+                    <input
+                        type="date"
+                        value={dateFrom}
+                        onChange={e => setDateFrom(e.target.value)}
+                        className="border px-3 py-2 rounded-md"
+                        placeholder="Desde"
+                    />
+                    <span className="text-sm text-gray-600">a</span>
+                    <input
+                        type="date"
+                        value={dateTo}
+                        onChange={e => setDateTo(e.target.value)}
+                        className="border px-3 py-2 rounded-md"
+                        placeholder="Hasta"
+                    />
+                </div>
+                {(dateFrom || dateTo) && (
                     <button
-                        onClick={() => setDueDateFilter("")}
+                        onClick={() => { setDateFrom(""); setDateTo(""); }}
                         className="ml-2 px-2 py-1 bg-gray-200 rounded"
-                        title="Limpiar filtro de fecha"
+                        title="Limpiar rango de fechas"
                     >
-                        Limpiar fecha
+                        Limpiar fechas
                     </button>
                 )}
             </div>
 
             {/* Tabla */}
             <div className="overflow-x-auto">
-                <table className="w-full text-left border">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="p-2">Usuario</th>
-                            <th className="p-2">Email</th>
-                            <th className="p-2">Servicio</th>
-                            <th className="p-2">Categoría</th>
-                            <th className="p-2">Estado</th>
-                            <th className="p-2">Fecha de vencimiento</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredSubscriptions.length === 0 ? (
+                {loading ? (
+                    <p className="text-center py-8">Cargando suscripciones...</p>
+                ) : (
+                    <table className="w-full text-left border">
+                        <thead className="bg-gray-100">
                             <tr>
-                                <td colSpan="6" className="text-center p-4 text-gray-500">
-                                    No se encontraron suscripciones con esos filtros.
-                                </td>
+                                <th className="p-2">Usuario</th>
+                                <th className="p-2">Email</th>
+                                <th className="p-2">Servicio</th>
+                                <th className="p-2">Categoría</th>
+                                <th className="p-2">Estado</th>
+                                <th className="p-2">Inicio</th>
+                                <th className="p-2">Fecha de vencimiento</th>
                             </tr>
-                        ) : (
-                            filteredSubscriptions.map((sub) => (
-                                <tr key={sub.id} className="border-t">
-                                    <td className="p-2">{sub.user}</td>
-                                    <td className="p-2">{sub.email}</td>
-                                    <td className="p-2">{sub.service}</td>
-                                    <td className="p-2">{sub.category}</td>
-                                    <td className={`p-2 capitalize ${getStatusColor(sub.status)}`}>
-                                        {sub.status}
+                        </thead>
+                        <tbody>
+                            {filteredSubscriptions.length === 0 ? (
+                                <tr>
+                                    <td colSpan="7" className="text-center p-4 text-gray-500">
+                                        No se encontraron suscripciones con esos filtros.
                                     </td>
-                                    <td className="p-2">{sub.dueDate}</td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : (
+                                filteredSubscriptions.map((sub) => (
+                                    <tr key={sub.SubscriptionId || sub.id} className="border-t">
+                                        <td className="p-2">{sub.user}</td>
+                                        <td className="p-2">{sub.email}</td>
+                                        <td className="p-2">{sub.service}</td>
+                                        <td className="p-2">{sub.category}</td>
+                                        <td className={`p-2 capitalize ${getStatusColor(sub.Status || sub.status)}`}>
+                                            {sub.Status || sub.status}
+                                        </td>
+                                        <td className="p-2">{sub.StartDate ? sub.StartDate.slice(0, 10) : ""}</td>
+                                        <td className="p-2">{sub.EndDate ? sub.EndDate.slice(0, 10) : ""}</td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                )}
             </div>
         </DashboardLayout>
     );

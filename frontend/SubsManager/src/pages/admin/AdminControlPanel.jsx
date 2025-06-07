@@ -1,30 +1,57 @@
+import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
 import { ResponsiveBar } from "@nivo/bar";
 import { ResponsivePie } from "@nivo/pie";
 import { ResponsiveLine } from "@nivo/line";
+import url_fetch from "../../enviroment";
 
 export default function AdminDashboard() {
-  const userCount = 120;
+  const [userCount, setUserCount] = useState(0);
+  const [subscriptionsByService, setSubscriptionsByService] = useState([]);
+  const [incomeByMonth, setIncomeByMonth] = useState([]);
+  const [subscriptionStatus, setSubscriptionStatus] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const subscriptionsByService = [
-    { service: "Netflix", count: 45 },
-    { service: "Spotify", count: 30 },
-    { service: "Dropbox", count: 20 },
-    { service: "HBO Max", count: 25 },
-  ];
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const response = await fetch(`${url_fetch}/admin/metricas`);
+        const data = await response.json();
 
-  const incomeByMonth = [
-    { x: "Ene", y: 200 },
-    { x: "Feb", y: 400 },
-    { x: "Mar", y: 300 },
-    { x: "Abr", y: 500 },
-    { x: "May", y: 450 },
-  ];
+        setUserCount(data.total_users || 0);
 
-  const subscriptionStatus = [
-    { id: "Activas", label: "Activas", value: 70 },
-    { id: "Inactivas", label: "Inactivas", value: 30 },
-  ];
+        // Servicios más suscritos para la gráfica de barras
+        setSubscriptionsByService(
+          (data.top_services || []).map(s => ({
+            service: s.Name,
+            count: s.suscripciones
+          }))
+        );
+
+        // Ingresos por mes para la gráfica de líneas
+        setIncomeByMonth(
+          (data.ingresos_por_mes || []).map(m => ({
+            x: m.mes,
+            y: Number(m.ingresos)
+          }))
+        );
+
+        // Estado de suscripciones para la gráfica de pastel
+        setSubscriptionStatus([
+          { id: "Activas", label: "Activas", value: data.suscripciones_status?.activas || 0 },
+          { id: "Inactivas", label: "Inactivas", value: data.suscripciones_status?.inactivas || 0 }
+        ]);
+      } catch (error) {
+        setUserCount(0);
+        setSubscriptionsByService([]);
+        setIncomeByMonth([]);
+        setSubscriptionStatus([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMetrics();
+  }, []);
 
   return (
     <DashboardLayout>
