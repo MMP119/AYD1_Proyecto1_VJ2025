@@ -23,7 +23,7 @@ export default function PerfilUsuario() {
     const [mensaje, setMensaje] = useState({ text: "", type: "" });
     const [mostrarPassword, setMostrarPassword] = useState(false);
     const [cambiarPassword, setCambiarPassword] = useState(false);
-    const [countdown, setCountdown] = useState(5);
+    const [countdown, setCountdown] = useState(3);
     const navigate = useNavigate();
 
     useEffect(() => {

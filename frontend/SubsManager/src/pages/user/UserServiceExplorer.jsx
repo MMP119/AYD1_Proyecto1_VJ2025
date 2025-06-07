@@ -1,20 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Dialog } from "@headlessui/react";
 import DashboardLayout from "../../components/DashboardLayout";
-
-// Datos simulados para ejemplo (en la práctica se cargarían desde API)
-const servicios = [
-  { ServiceId: 1, Name: "Netflix", Category: "Streaming", Description: "Películas y series" },
-  { ServiceId: 2, Name: "Spotify", Category: "Música", Description: "Música en línea" },
-];
-
-const planes = [
-  { PlanId: 1, ServiceId: 1, Type: "Básico", Price: 10 },
-  { PlanId: 2, ServiceId: 1, Type: "Premium", Price: 15 },
-  { PlanId: 3, ServiceId: 2, Type: "Estándar", Price: 5 },
-];
-
-const metodosPago = ["Tarjeta", "Efectivo", "Cartera Digital"];
+import url_fetch from '../../enviroment';
 
 export default function UserServiceExplorer() {
   const [busqueda, setBusqueda] = useState("");
@@ -24,14 +11,59 @@ export default function UserServiceExplorer() {
 
   const [plan, setPlan] = useState(null);
   const [metodoPago, setMetodoPago] = useState("Cartera Digital");
-  const [userWalletBalance, setUserWalletBalance] = useState(20); // valor simulado
+  const [userWalletBalance, setUserWalletBalance] = useState(20);
+
+  // Estados para servicios y planes
+  const [servicios, setServicios] = useState([]);
+  const [planes, setPlanes] = useState([]);
+
+  useEffect(() => {
+    const fetchServicios = async () => {
+      try {
+        const response = await fetch(`${url_fetch}/admin/servicios`);
+        const data = await response.json();
+
+        // Agrupa servicios y planes
+        const serviciosMap = {};
+        const planesArr = [];
+
+        data.servicios.forEach(item => {
+          if (!serviciosMap[item.ServiceId]) {
+            serviciosMap[item.ServiceId] = {
+              ServiceId: item.ServiceId,
+              Name: item.Name,
+              Category: item.Category,
+              Description: item.Description,
+            };
+          }
+          // Si hay plan, agrégalo
+          if (item.PlanType && item.Price !== null) {
+            planesArr.push({
+              PlanId: `${item.ServiceId}-${item.PlanType}`,
+              ServiceId: item.ServiceId,
+              Type: item.PlanType,
+              Price: item.Price,
+            });
+          }
+        });
+
+        setServicios(Object.values(serviciosMap));
+        setPlanes(planesArr);
+      } catch (error) {
+        setServicios([]);
+        setPlanes([]);
+      }
+    };
+
+    fetchServicios();
+  }, []);
 
   const serviciosFiltrados = useMemo(() => {
     return servicios.filter(s =>
       s.Name.toLowerCase().includes(busqueda.toLowerCase()) &&
       (categoria === "todos" || s.Category === categoria)
     );
-  }, [busqueda, categoria]);
+  }, [busqueda, categoria, servicios]);
 
   const abrirModal = (servicio) => {
     setServicioSeleccionado(servicio);
@@ -41,7 +73,7 @@ export default function UserServiceExplorer() {
   };
 
   const obtenerPrecioPlan = (planId) => {
-    return planes.find(p => p.PlanId === parseInt(planId))?.Price || 0;
+    return planes.find(p => p.PlanId === planId)?.Price || 0;
   };
 
   const suscribirse = () => {
@@ -51,13 +83,7 @@ export default function UserServiceExplorer() {
       return;
     }
 
-    console.log(`Suscrito a ${servicioSeleccionado.Name}, plan ${plan}, pagando con ${metodoPago}. Monto: $${precio}`);
-    
-    if (metodoPago === "Cartera Digital") {
-      setUserWalletBalance(prev => prev - precio);
-      console.log(`Transacción registrada en wallet por $${precio}`);
-    }
-
+    // Aquí iría la lógica real de suscripción
     setIsOpen(false);
   };
 
@@ -138,7 +164,7 @@ export default function UserServiceExplorer() {
                 onChange={(e) => setMetodoPago(e.target.value)}
                 className="w-full border px-3 py-2 rounded-md"
               >
-                {metodosPago.map(m => (
+                {["Tarjeta", "Efectivo", "Cartera Digital"].map(m => (
                   <option key={m} value={m}>{m}</option>
                 ))}
               </select>
