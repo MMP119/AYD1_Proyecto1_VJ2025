@@ -5,9 +5,10 @@ import url_fetch from '../../enviroment';
 import { useAuth } from "../../context/AuthContext";
 
 const TEST_USERS = [
-    { email: "admin@admin.com", password: "admin123", user_id: 1, user_rol: "admin" },
-    { email: "user@user.com", password: "user123", user_id: 2, user_rol: "user" }
+    { email: "admin@admin.com", password: "admin123", user_id: 1, user_rol: "admin", name: "Administrador" },
+    { email: "user@user.com", password: "user123", user_id: 2, user_rol: "user", name: "Usuario Demo" }
 ];
+
 
 export default function Login() {
     const [form, setForm] = useState({ email: "", password: "" });
@@ -36,9 +37,7 @@ export default function Login() {
             u => u.email === form.email && u.password === form.password
         );
         if (testUser) {
-            sessionStorage.setItem('token', testUser.user_id);
-            sessionStorage.setItem('rol', testUser.user_rol);
-            login({ id: testUser.user_id, role: testUser.user_rol });
+            login({ id: testUser.user_id, role: testUser.user_rol, name : testUser.name, email: testUser.email });
             navigate(testUser.user_rol === "admin" ? "/admin/dashboard" : "/user/dashboard");
             setLoading(false);
             return;
@@ -62,7 +61,7 @@ export default function Login() {
                 sessionStorage.setItem('token', data.user_id);
 
                 // Actualiza el contexto de autenticación
-                login({ id: data.user_id, role: data.user_rol });
+                login({ id: data.user_id, role: data.user_rol, name: data.user_name, email: data.user_email, username: data.user_username });
 
                 navigate(data.user_rol === "admin" ? "/admin/dashboard" : "/user/dashboard");
             } else {
