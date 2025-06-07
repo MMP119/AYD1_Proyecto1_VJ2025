@@ -84,6 +84,7 @@ async def login_user(request: Request, login_data: LoginUser):
                 raise HTTPException(status_code=400, detail="Credenciales incorrectas")
             
             activo = False if user[4] or user[5] == 'inactive' else True
+            rol = 'admin' if user[3] == 'administrator' else 'user'
 
             return {
                 "status": "success",
@@ -91,7 +92,7 @@ async def login_user(request: Request, login_data: LoginUser):
                 "user_id": user[0], 
                 "user_name": user[1],
                 "user_email": user[2],
-                "user_rol": user[3],
+                "user_rol": rol,
                 "user_username": user[8],
                 "activo": activo     
             }
