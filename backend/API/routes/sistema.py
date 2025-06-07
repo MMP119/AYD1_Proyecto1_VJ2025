@@ -1,8 +1,12 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from database import get_db_pool
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 import bcrypt
 from typing import Optional
+from mailer import send_email
+import secrets
+from datetime import datetime, timedelta
+import aiomysql
 
 router = APIRouter()
 
@@ -32,38 +36,104 @@ class UpdateUserData(BaseModel):
     password: Optional[str] = None
 
 
+class ConfirmData(BaseModel):
+    email: EmailStr
+    code: str
+
+
 @router.post("/register")
-async def register_user(request: Request, user_data: UserData):
+async def register_user(request: Request, user_data: UserData, background_tasks: BackgroundTasks):
     pool, conn = await get_db_connection(request)
     try:
         async with conn.cursor() as cursor:
-            await cursor.execute("SELECT * FROM User WHERE Email = %s", (user_data.email,))
-            existing_user = await cursor.fetchone()
-            if existing_user:
+            # Verificar email y username
+            await cursor.execute("SELECT 1 FROM `User` WHERE Email = %s", (user_data.email,))
+            if await cursor.fetchone():
                 raise HTTPException(status_code=400, detail="El usuario ya existe")
-            
-            await cursor.execute("SELECT * FROM User WHERE Username = %s", (user_data.username,))
-            existing_username = await cursor.fetchone()
-            if existing_username:
+
+            await cursor.execute("SELECT 1 FROM `User` WHERE Username = %s", (user_data.username,))
+            if await cursor.fetchone():
                 raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso")
 
-            # Hahsear la contraseña con bcrypt
-            hashed_password = bcrypt.hashpw(user_data.password.encode('utf-8'), bcrypt.gensalt())
+            # Hashear la contraseña
+            hashed_password = bcrypt.hashpw(
+                user_data.password.encode('utf-8'),
+                bcrypt.gensalt()
+            )
 
+            # Insertar el usuario
             await cursor.execute("""
-                INSERT INTO User (Username, Name, Email, Rol, Password)
+                INSERT INTO `User` (Username, Name, Email, Rol, Password)
                 VALUES (%s, %s, %s, %s, %s)
-            """, (user_data.username, user_data.name, user_data.email, user_data.rol, hashed_password))
+            """, (
+                user_data.username,
+                user_data.name,
+                user_data.email,
+                user_data.rol,
+                hashed_password
+            ))
             await conn.commit()
 
-        return {"status": "success", "message": "Usuario registrado exitosamente"}
+            # Generar y guardar el código
+            codigo = secrets.token_hex(4).upper()
+
+            await cursor.execute("""
+                UPDATE User
+                SET ConfirmationCode = %s
+                WHERE Email = %s
+            """, (codigo, user_data.email))
+            await conn.commit()
+
+            # Enviar email
+            background_tasks.add_task(
+                send_email,
+                "Confirma tu cuenta",
+                user_data.email,
+                "confirm.html",
+                {"name": user_data.name, "code": codigo}
+            )
+
+        return {"status": "success", "message": "Usuario registrado. Revisa tu correo."}
+    
     except HTTPException:
         raise
     except Exception as e:
         print(f"Error al registrar usuario: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Error interno al registrar usuario")
     finally:
         pool.release(conn)
+
+
+
+@router.post("/confirmEmail")
+async def confirm_email(request: Request, data: ConfirmData):
+
+    pool, conn = await get_db_connection(request)
+    try:
+        async with conn.cursor(aiomysql.DictCursor) as cursor:
+            await cursor.execute("""
+                SELECT ConfirmationCode
+                FROM User
+                WHERE Email = %s
+            """, (data.email,))
+
+            row = await cursor.fetchone()
+
+            if not row or row["ConfirmationCode"] != data.code:
+                raise HTTPException(400, "Código inválido")
+
+            # Marcar usuario como confirmado 
+            await cursor.execute("""
+                UPDATE User
+                SET ConfirmationCode = NULL, ConfirmedEmail = 'yes'
+                WHERE Email = %s
+            """, (data.email,))
+            await conn.commit()
+
+        return {"status": "success", "message": "Correo confirmado"}
+    finally:
+        pool.release(conn)
+
 
 
 @router.post("/login")
