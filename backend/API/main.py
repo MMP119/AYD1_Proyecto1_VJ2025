@@ -6,6 +6,7 @@ import logging
 from routes.admin.gestionUsuarios import router as gestionUsuario_router
 from routes.admin.gestionSuscripciones import router as gestionSuscripciones_router
 from routes.admin.gestionSerivicios import router as gestionServicios_router
+from routes.admin.reportes import router as reporter_router
 
 from routes.admin.panelControl import router as panelControl_router
 
@@ -31,6 +32,7 @@ app.include_router(system_router)
 app.include_router(gestionUsuario_router)
 app.include_router(gestionSuscripciones_router)
 app.include_router(gestionServicios_router)
+app.include_router(reporter_router)
 
 app.include_router(panelControl_router)
 
