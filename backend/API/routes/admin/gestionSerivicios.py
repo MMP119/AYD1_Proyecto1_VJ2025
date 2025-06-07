@@ -127,20 +127,22 @@ async def eliminar_servicio(request: Request, service_id: int):
         async with pool.acquire() as conn:
             async with conn.cursor() as cursor:
 
-                # eliminar el servicio y su plan asociado
-                delete_service_sql = """
-                    DELETE FROM Service WHERE ServiceId=%s
-                """
-                await cursor.execute(delete_service_sql, (service_id,))
-
+                # Primero elimina los planes asociados
                 delete_plan_sql = """
                     DELETE FROM Plan WHERE ServiceId=%s
                 """
                 await cursor.execute(delete_plan_sql, (service_id,))
+
+                # Luego elimina el servicio
+                delete_service_sql = """
+                    DELETE FROM Service WHERE ServiceId=%s
+                """
+                await cursor.execute(delete_service_sql, (service_id,))
 
                 await conn.commit()
 
                 return {"message": "Servicio eliminado exitosamente"}
 
     except Exception as e:
+        print(f"Error al eliminar servicio: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al eliminar servicio: {str(e)}")
