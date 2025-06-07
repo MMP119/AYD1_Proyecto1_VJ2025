@@ -10,7 +10,7 @@ export default function AdminServiceManagement() {
     category: "",
     description: "",
     price: "",
-    plan: "mensual",
+    plan: "monthly", // Cambiado a "monthly" por defecto
   });
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,7 @@ export default function AdminServiceManagement() {
               category: item.Category,
               description: item.Description,
               price: item.Price,
-              plan: item.PlanType,
+              plan: item.PlanType, // Aquí se mantiene el valor tal como viene del backend ("monthly"/"annual")
             };
           }
         });
@@ -65,7 +65,7 @@ export default function AdminServiceManagement() {
             category: form.category,
             description: form.description,
             price: parseFloat(form.price),
-            plan_type: form.plan,
+            plan_type: form.plan, // Enviando "monthly" o "annual"
           }),
         });
         setServices((prev) =>
@@ -87,7 +87,7 @@ export default function AdminServiceManagement() {
             category: form.category,
             description: form.description,
             price: parseFloat(form.price),
-            plan_type: form.plan,
+            plan_type: form.plan, // Enviando "monthly" o "annual"
           }),
         });
         const data = await response.json();
@@ -108,7 +108,7 @@ export default function AdminServiceManagement() {
       category: "",
       description: "",
       price: "",
-      plan: "mensual",
+      plan: "monthly",
     });
     setEditing(false);
   };
@@ -131,11 +131,18 @@ export default function AdminServiceManagement() {
           category: "",
           description: "",
           price: "",
-          plan: "mensual",
+          plan: "monthly",
         });
         setEditing(false);
       }
     } catch (error) {}
+  };
+
+  // Función para mostrar el texto en español
+  const getPlanLabel = (plan) => {
+    if (plan === "monthly") return "Mensual";
+    if (plan === "annual") return "Anual";
+    return plan;
   };
 
   return (
@@ -186,8 +193,8 @@ export default function AdminServiceManagement() {
               className="p-2 border rounded w-full"
               required
             >
-              <option value="mensual">Mensual</option>
-              <option value="anual">Anual</option>
+              <option value="monthly">Mensual</option>
+              <option value="annual">Anual</option>
             </select>
           </div>
 
@@ -218,7 +225,7 @@ export default function AdminServiceManagement() {
                     category: "",
                     description: "",
                     price: "",
-                    plan: "mensual",
+                    plan: "monthly",
                   });
                   setEditing(false);
                 }}
@@ -260,7 +267,7 @@ export default function AdminServiceManagement() {
                       <td className="p-2">{s.category}</td>
                       <td className="p-2">{s.description}</td>
                       <td className="p-2">${s.price.toFixed(2)}</td>
-                      <td className="p-2 capitalize">{s.plan}</td>
+                      <td className="p-2 capitalize">{getPlanLabel(s.plan)}</td>
                       <td className="p-2 space-x-2">
                         <button
                           onClick={() => handleEdit(s)}
