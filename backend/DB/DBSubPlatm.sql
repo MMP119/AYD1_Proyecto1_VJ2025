@@ -13,6 +13,7 @@ CREATE TABLE User(
     Password VARCHAR(250) NOT NULL,
     ConfirmedEmail VARCHAR(20) DEFAULT 'no' CHECK(ConfirmedEmail IN ('yes','no'))NOT NULL,
     Username VARCHAR(20) NOT NULL UNIQUE,
+    ConfirmationCode VARCHAR(64),
     RegisterDate DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
