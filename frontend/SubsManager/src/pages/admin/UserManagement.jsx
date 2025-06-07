@@ -14,7 +14,8 @@ export default function UserManagement() {
     Email: "",
     Username: "",
     Rol: "",
-    AccountStatus: ""
+    AccountStatus: "",
+    NewPassword: ""
   });
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -96,16 +97,20 @@ export default function UserManagement() {
 
   const saveEdit = async () => {
     try {
+      const body = {
+        name: editForm.Name,
+        email: editForm.Email,
+        rol: editForm.Rol,
+        accountStatus: editForm.AccountStatus,
+        user: editForm.Username
+      };
+      if (editForm.NewPassword && editForm.NewPassword.trim() !== "") {
+        body.newPassword = editForm.NewPassword;
+      }
       await fetch(`${url_fetch}/admin/usuarios/${editUser.UserId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editForm.Name,
-          email: editForm.Email,
-          rol: editForm.Rol,
-          accountStatus: editForm.AccountStatus,
-          user: editForm.Username
-        }),
+        body: JSON.stringify(body),
       });
       setUsers(users =>
         users.map(user =>
@@ -243,6 +248,17 @@ export default function UserManagement() {
                   <option value="deactivated">Inactivo</option>
                   <option value="deleted">Eliminado</option>
                 </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Nueva contraseña</label>
+                <input
+                  type="password"
+                  name="NewPassword"
+                  value={editForm.NewPassword || ""}
+                  onChange={handleEditChange}
+                  className="w-full border px-3 py-2 rounded"
+                  placeholder="Dejar en blanco para no cambiar"
+                />
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
