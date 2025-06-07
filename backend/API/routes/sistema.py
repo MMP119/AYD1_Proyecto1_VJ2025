@@ -154,12 +154,16 @@ async def login_user(request: Request, login_data: LoginUser):
                 raise HTTPException(status_code=400, detail="Credenciales incorrectas")
             
             activo = False if user[4] or user[5] == 'inactive' else True
+            rol = 'admin' if user[3] == 'administrator' else 'user'
 
             return {
                 "status": "success",
                 "message": "Login exitoso",
                 "user_id": user[0], 
-                "user_rol": user[3],
+                "user_name": user[1],
+                "user_email": user[2],
+                "user_rol": rol,
+                "user_username": user[8],
                 "activo": activo     
             }
         
@@ -182,6 +186,26 @@ async def update_user(request: Request, user_id: int, update_data: UpdateUserDat
             user = await cursor.fetchone()
             if not user:
                 raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            
+            # Verificar si el nuevo email ya está en uso por otro usuario
+            if update_data.email:
+                await cursor.execute(
+                    "SELECT * FROM User WHERE Email = %s AND UserId != %s",
+                    (update_data.email, user_id)
+                )
+                existing_email = await cursor.fetchone()
+                if existing_email:
+                    raise HTTPException(status_code=400, detail="El correo electrónico ya está en uso por otro usuario")
+            
+            # Verificar si el nuevo username ya está en uso por otro usuario
+            if update_data.username:
+                await cursor.execute(
+                    "SELECT * FROM User WHERE Username = %s AND UserId != %s",
+                    (update_data.username, user_id)
+                )
+                existing_username = await cursor.fetchone()
+                if existing_username:
+                    raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso por otro usuario")
 
             # Actualizar los campos proporcionados
             if update_data.username:

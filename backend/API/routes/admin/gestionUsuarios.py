@@ -2,6 +2,7 @@ import aiomysql
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 from database import get_db_pool
+import bcrypt
 
 """
 el administrador podrá visualizar un listado de los usuarios registrados, 
@@ -58,17 +59,25 @@ async def obtener_usuario(request: Request, usuario_id: int):
 async def editar_usuario(request: Request, usuario_id: int, user_data: userData):
     try:
         pool = await get_db_pool(request.app)
-
+        data = await request.json()
         async with pool.acquire() as conn:
             async with conn.cursor() as cursor:
-                await cursor.execute(
-                    "UPDATE User SET Name=%s, Email=%s, Rol=%s, AccountStatus=%s User=%s WHERE UserId=%s",
-                    (user_data.name, user_data.email, user_data.rol, user_data.accountStatus, user_data.user, usuario_id)
-                )
+                # Si viene nueva contraseña, actualiza también ese campo
+                if "newPassword" in data and data["newPassword"]:
+                    hashed = bcrypt.hashpw(data["newPassword"].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    await cursor.execute(
+                        "UPDATE User SET Name=%s, Email=%s, Rol=%s, AccountStatus=%s, Username=%s, Password=%s WHERE UserId=%s",
+                        (user_data.name, user_data.email, user_data.rol, user_data.accountStatus, user_data.user, hashed, usuario_id)
+                    )
+                else:
+                    await cursor.execute(
+                        "UPDATE User SET Name=%s, Email=%s, Rol=%s, AccountStatus=%s, Username=%s WHERE UserId=%s",
+                        (user_data.name, user_data.email, user_data.rol, user_data.accountStatus, user_data.user, usuario_id)
+                    )
                 await conn.commit()
                 return {"message": "Usuario actualizado correctamente"}
-            
     except Exception as e:
+        print(f"Error al editar usuario: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al editar usuario: {str(e)}")
     
 
@@ -89,4 +98,3 @@ async def eliminar_usuario(request: Request, usuario_id: int):
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al eliminar usuario: {str(e)}")
-    

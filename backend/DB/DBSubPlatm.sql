@@ -1,4 +1,6 @@
-CREATE DATABASE IF NOT EXISTS SubscriptionPlatform;
+CREATE DATABASE IF NOT EXISTS SubscriptionPlatform
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_unicode_ci;
 
 USE SubscriptionPlatform;
 
@@ -78,19 +80,20 @@ CREATE TABLE Notification(
     CONSTRAINT FK_User_Notification FOREIGN KEY (UserId) REFERENCES User(UserId)
 );
 
-/*
+
 -- Insertar datos en la tabla User
+-- Nota: las contraseñas de usuario son test para todos
 INSERT INTO User (Name, Email, Rol, SessionStatus, AccountStatus, Password, ConfirmedEmail, Username) VALUES
-('Juan Pérez', 'juan.perez@email.com', 'user', 'active', 'active', 'hashed_password_1', 'yes', 'juanp'),
-('María García', 'maria.garcia@email.com', 'administrator', 'inactive', 'active', 'hashed_password_2', 'yes', 'mariag'),
-('Carlos López', 'carlos.lopez@email.com', 'user', 'active', 'active', 'hashed_password_3', 'yes', 'carlosl'),
-('Ana Martínez', 'ana.martinez@email.com', 'user', 'inactive', 'active', 'hashed_password_4', 'no', 'anam'),
-('Luis Rodríguez', 'luis.rodriguez@email.com', 'user', 'active', 'deactivated', 'hashed_password_5', 'yes', 'luisr'),
-('Sofia Hernández', 'sofia.hernandez@email.com', 'user', 'active', 'active', 'hashed_password_6', 'yes', 'sofiah'),
-('Diego Morales', 'diego.morales@email.com', 'administrator', 'active', 'active', 'hashed_password_7', 'yes', 'diegom'),
-('Carmen Silva', 'carmen.silva@email.com', 'user', 'inactive', 'active', 'hashed_password_8', 'yes', 'carmens'),
-('Roberto Vargas', 'roberto.vargas@email.com', 'user', 'active', 'active', 'hashed_password_9', 'no', 'robertov'),
-('Elena Castro', 'elena.castro@email.com', 'user', 'active', 'active', 'hashed_password_10', 'yes', 'elenac');
+('Juan Pérez', 'juan.perez@email.com', 'user', 'active', 'active', '$2a$12$qrSpR.YfjJjnr.xXMzhkFOcP/hOcrT.JM09Jetoj0pdAcHMu.uGiG', 'yes', 'juanp'),
+('María García', 'maria.garcia@email.com', 'administrator', 'inactive', 'active', '$2a$12$qrSpR.YfjJjnr.xXMzhkFOcP/hOcrT.JM09Jetoj0pdAcHMu.uGiG', 'yes', 'mariag'),
+('Carlos López', 'carlos.lopez@email.com', 'user', 'active', 'active', '$2a$12$qrSpR.YfjJjnr.xXMzhkFOcP/hOcrT.JM09Jetoj0pdAcHMu.uGiG', 'yes', 'carlosl'),
+('Ana Martínez', 'ana.martinez@email.com', 'user', 'inactive', 'active', '$2a$12$qrSpR.YfjJjnr.xXMzhkFOcP/hOcrT.JM09Jetoj0pdAcHMu.uGiG', 'no', 'anam'),
+('Luis Rodríguez', 'luis.rodriguez@email.com', 'user', 'active', 'deactivated', '$2a$12$qrSpR.YfjJjnr.xXMzhkFOcP/hOcrT.JM09Jetoj0pdAcHMu.uGiG', 'yes', 'luisr'),
+('Sofia Hernández', 'sofia.hernandez@email.com', 'user', 'active', 'active', '$2a$12$qrSpR.YfjJjnr.xXMzhkFOcP/hOcrT.JM09Jetoj0pdAcHMu.uGiG', 'yes', 'sofiah'),
+('Diego Morales', 'diego.morales@email.com', 'administrator', 'active', 'active', '$2a$12$qrSpR.YfjJjnr.xXMzhkFOcP/hOcrT.JM09Jetoj0pdAcHMu.uGiG', 'yes', 'diegom'),
+('Carmen Silva', 'carmen.silva@email.com', 'user', 'inactive', 'active', '$2a$12$qrSpR.YfjJjnr.xXMzhkFOcP/hOcrT.JM09Jetoj0pdAcHMu.uGiG', 'yes', 'carmens'),
+('Roberto Vargas', 'roberto.vargas@email.com', 'user', 'active', 'active', '$2a$12$qrSpR.YfjJjnr.xXMzhkFOcP/hOcrT.JM09Jetoj0pdAcHMu.uGiG', 'no', 'robertov'),
+('Elena Castro', 'elena.castro@email.com', 'user', 'active', 'active', '$2a$12$qrSpR.YfjJjnr.xXMzhkFOcP/hOcrT.JM09Jetoj0pdAcHMu.uGiG', 'yes', 'elenac');
 
 -- Insertar datos en la tabla Service
 INSERT INTO Service (Name, Category, Description) VALUES
@@ -187,7 +190,7 @@ INSERT INTO Notification (UserId, Message, Type, NotificationDate, ReadStatus) V
 (9, 'Tu suscripción a Zoom Pro expira en 5 días', 'expiration', '2024-03-15 12:00:00', 'no'),
 (10, 'Bienvenido a Adobe Creative Cloud', 'other', '2024-01-05 14:16:00', 'yes');
 
-*/
+
 
 -- SELECT * FROM USER;
 -- SELECT * FROM SUBSCRIPTION;
