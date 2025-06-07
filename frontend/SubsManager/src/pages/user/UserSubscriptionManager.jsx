@@ -1,40 +1,64 @@
 import { useEffect, useState } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
-
-const servicios = [
-  { ServiceId: 1, Name: "Netflix" },
-  { ServiceId: 2, Name: "Spotify" },
-];
-
-const planes = [
-  { PlanId: 1, ServiceId: 1, Type: "Básico", Price: 10 },
-  { PlanId: 2, ServiceId: 2, Type: "Estándar", Price: 5 },
-];
-
-const suscripcionesSimuladas = [
-  {
-    SubscriptionId: 1,
-    ServiceId: 1,
-    PlanId: 1,
-    StartDate: "2024-12-01",
-    EndDate: null,
-    Status: "Activa",
-  },
-  {
-    SubscriptionId: 2,
-    ServiceId: 2,
-    PlanId: 2,
-    StartDate: "2024-10-01",
-    EndDate: "2025-01-01",
-    Status: "Cancelada",
-  },
-];
+import url_fetch from '../../enviroment';
 
 export default function UserSubscriptionManager() {
   const [suscripciones, setSuscripciones] = useState([]);
+  const [servicios, setServicios] = useState([]);
+  const [planes, setPlanes] = useState([]);
 
+  // Cargar servicios y planes
   useEffect(() => {
-    setSuscripciones(suscripcionesSimuladas);
+    const fetchServicios = async () => {
+      try {
+        const response = await fetch(`${url_fetch}/admin/servicios`);
+        const data = await response.json();
+
+        // Agrupa servicios y planes
+        const serviciosMap = {};
+        const planesArr = [];
+
+        data.servicios.forEach(item => {
+          if (!serviciosMap[item.ServiceId]) {
+            serviciosMap[item.ServiceId] = {
+              ServiceId: item.ServiceId,
+              Name: item.Name,
+            };
+          }
+          if (item.PlanType && item.Price !== null) {
+            planesArr.push({
+              PlanId: `${item.ServiceId}-${item.PlanType}`,
+              ServiceId: item.ServiceId,
+              Type: item.PlanType,
+              Price: item.Price,
+            });
+          }
+        });
+
+        setServicios(Object.values(serviciosMap));
+        setPlanes(planesArr);
+      } catch (error) {
+        setServicios([]);
+        setPlanes([]);
+      }
+    };
+
+    fetchServicios();
+  }, []);
+
+  // Cargar suscripciones reales
+  useEffect(() => {
+    const fetchSuscripciones = async () => {
+      try {
+        const response = await fetch(`${url_fetch}/admin/suscripciones`);
+        const data = await response.json();
+        setSuscripciones(data.suscripciones || []);
+      } catch (error) {
+        setSuscripciones([]);
+      }
+    };
+
+    fetchSuscripciones();
   }, []);
 
   const cancelarSuscripcion = (id) => {
@@ -84,24 +108,27 @@ export default function UserSubscriptionManager() {
               <tr key={sub.SubscriptionId} className="border-t">
                 <td className="py-2 px-4">{getNombreServicio(sub.ServiceId)}</td>
                 <td className="py-2 px-4">{getNombrePlan(sub.PlanId)}</td>
-                <td className="py-2 px-4">{sub.StartDate}</td>
-                <td className="py-2 px-4">{sub.EndDate || "-"}</td>
+                <td className="py-2 px-4">{sub.StartDate?.slice(0, 10)}</td>
+                <td className="py-2 px-4">{sub.EndDate ? sub.EndDate.slice(0, 10) : "-"}</td>
                 <td className="py-2 px-4">
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      sub.Status === "Activa"
+                      sub.Status === "active"
                         ? "bg-green-100 text-green-700"
-                        : "bg-gray-200 text-gray-600"
+                        : sub.Status === "cancelled"
+                        ? "bg-gray-200 text-gray-600"
+                        : "bg-yellow-100 text-yellow-700"
                     }`}
                   >
                     {sub.Status}
                   </span>
                 </td>
                 <td className="py-2 px-4 text-center">
-                  {sub.Status === "Activa" ? (
+                  {sub.Status === "active" ? (
                     <button
-                      onClick={() => cancelarSuscripcion(sub.SubscriptionId)}
+                      // Aquí deberías implementar la lógica real de cancelación
                       className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                      disabled
                     >
                       Cancelar
                     </button>
