@@ -62,13 +62,14 @@ async def editar_usuario(request: Request, usuario_id: int, user_data: userData)
         async with pool.acquire() as conn:
             async with conn.cursor() as cursor:
                 await cursor.execute(
-                    "UPDATE User SET Name=%s, Email=%s, Rol=%s, AccountStatus=%s User=%s WHERE UserId=%s",
+                    "UPDATE User SET Name=%s, Email=%s, Rol=%s, AccountStatus=%s, Username=%s WHERE UserId=%s",
                     (user_data.name, user_data.email, user_data.rol, user_data.accountStatus, user_data.user, usuario_id)
                 )
                 await conn.commit()
                 return {"message": "Usuario actualizado correctamente"}
             
     except Exception as e:
+        print(f"Error al editar usuario: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error al editar usuario: {str(e)}")
     
 
