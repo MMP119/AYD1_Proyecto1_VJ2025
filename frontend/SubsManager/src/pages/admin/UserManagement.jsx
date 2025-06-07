@@ -35,37 +35,6 @@ export default function UserManagement() {
     fetchUsers();
   }, []);
 
-  const toggleStatus = async (userId, currentStatus) => {
-    const newStatus = currentStatus === "active" ? "deactivated" : "active";
-    try {
-      await fetch(`${url_fetch}/admin/usuarios/${userId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountStatus: newStatus }),
-      });
-      setUsers(users =>
-        users.map(user =>
-          user.UserId === userId
-            ? { ...user, AccountStatus: newStatus }
-            : user
-        )
-      );
-    } catch (error) {}
-  };
-
-  const deleteUser = async (userId) => {
-    try {
-      await fetch(`${url_fetch}/admin/usuarios/${userId}`, {
-        method: "DELETE",
-      });
-      setUsers(users => users.map(user =>
-        user.UserId === userId
-          ? { ...user, AccountStatus: "deleted" }
-          : user
-      ));
-    } catch (error) {}
-  };
-
   // Abrir modal y cargar datos del usuario
   const openEditModal = (user) => {
     setEditUser(user);
