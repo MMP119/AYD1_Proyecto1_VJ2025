@@ -24,13 +24,39 @@ A continuación se presentan todos los endpoints usados en la API junto con un e
 ```json
 {
   "status": "success",
-  "message": "Usuario registrado exitosamente"
+  "message": "Usuario registrado exitosamente, revisa tu correo"
 }
 ```
 
 ---
 
-## 2. Inicio de Sesión
+## 2. Confirmar Email
+
+**Endpoint:** `POST /confirmEmail`  
+**Descripción:** Para confirmar el email del usuario a registrar.
+
+**Ejemplo de solicitud (JSON):**
+```json
+{
+{
+  "email": "correo@gmail.com",
+  "code": "ABCD124"
+}
+}
+```
+
+**Respuesta exitosa (JSON):**
+```json
+{
+  "status": "success",
+  "message": "Correo confirmado"
+}
+```
+
+---
+
+
+## 3. Inicio de Sesión
 
 **Endpoint:** `POST /login`  
 **Descripción:** Valida las credenciales del usuario y realiza el login.
@@ -55,7 +81,7 @@ A continuación se presentan todos los endpoints usados en la API junto con un e
 
 ---
 
-## 3. Actualización de Datos de Usuario
+## 4. Actualización de Datos de Usuario
 
 **Endpoint:** `PUT /update_user/{user_id}`  
 **Descripción:** Actualiza la información de un usuario existente.
@@ -81,7 +107,7 @@ A continuación se presentan todos los endpoints usados en la API junto con un e
 
 ---
 
-## 4. Métricas del Administrador
+## 5. Métricas del Administrador
 
 **Endpoint:** `GET /admin/metricas`  
 **Descripción:** Devuelve estadísticas generales del sistema.
@@ -110,7 +136,7 @@ Sin cuerpo (solo consulta GET).
 
 ---
 
-## 5. Listado de Usuarios
+## 6. Listado de Usuarios
 
 **Endpoint:** `GET /admin/usuarios`  
 **Descripción:** Lista todos los usuarios registrados.
@@ -137,7 +163,7 @@ Sin cuerpo.
 
 ---
 
-## 6. Obtener Información de un Usuario
+## 7. Obtener Información de un Usuario
 
 **Endpoint:** `GET /admin/usuarios/{usuario_id}`  
 **Descripción:** Obtiene la información de un usuario específico.
@@ -161,7 +187,7 @@ Sin cuerpo, usando la URL: `/admin/usuarios/1`
 
 ---
 
-## 7. Editar Usuario (Administrador)
+## 8. Editar Usuario (Administrador)
 
 **Endpoint:** `PUT /admin/usuarios/{usuario_id}`  
 **Descripción:** Permite editar los datos de un usuario.
@@ -186,7 +212,7 @@ Sin cuerpo, usando la URL: `/admin/usuarios/1`
 
 ---
 
-## 8. Eliminar Usuario
+## 9. Eliminar Usuario
 
 **Endpoint:** `DELETE /admin/usuarios/{usuario_id}`  
 **Descripción:** Marca la cuenta de un usuario como eliminada (AccountStatus = "deleted").
@@ -203,7 +229,7 @@ Sin cuerpo, usando la URL: `/admin/usuarios/1`
 
 ---
 
-## 9. Listado de Suscripciones
+## 10. Listado de Suscripciones
 
 **Endpoint:** `GET /admin/suscripciones`  
 **Descripción:** Lista todas las suscripciones registradas (el filtrado se realiza en el frontend).
@@ -231,7 +257,7 @@ Sin cuerpo.
 ```
 ---
 
-## 10. Listo de Servicios
+## 11. Listo de Servicios
 
 **Endpoint:** `GET /admin/servicios`  
 **Descripción:** Lista todos los servicios registrados.
@@ -257,7 +283,7 @@ Sin cuerpo.
 ```
 
 ---
-## 11. Registrar nuevo Servicio
+## 12. Registrar nuevo Servicio
 **Endpoint:** `POST /admin/servicios`  
 **Descripción:** Registra un nuevo servicio y su plan asociado.
 
@@ -282,7 +308,7 @@ Sin cuerpo.
 ```
 
 ---
-## 12. Editar un Servicio
+## 13. Editar un Servicio
 **Endpoint:** `PUT /admin/servicios/{service_id}`  
 **Descripción:** Edita/actualiza la información de un servicio existente.
 
@@ -305,7 +331,7 @@ Sin cuerpo.
 ```
 
 ---
-## 13. Eliminar un Servicio
+## 14. Eliminar un Servicio
 **Endpoint:** `DELETE /admin/servicios/{service_id}`  
 **Descripción:** Elimina un servicio y su plan asociado.
 
@@ -321,7 +347,7 @@ Sin cuerpo, utilizando el `service_id` en la URL.
 
 ---
 
-## 14. Endpoint Raíz
+## 15. Endpoint Raíz
 
 **Endpoint:** `GET /`  
 **Descripción:** Mensaje de bienvenida simple desde la API.
