@@ -7,8 +7,8 @@ from routes.admin.gestionUsuarios import router as gestionUsuario_router
 from routes.admin.gestionSuscripciones import router as gestionSuscripciones_router
 from routes.admin.gestionSerivicios import router as gestionServicios_router
 from routes.admin.reportes import router as reporter_router
-
 from routes.admin.panelControl import router as panelControl_router
+from routes.user.subscriptionUser import router as subscriptionUser_router
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -28,13 +28,12 @@ app.add_middleware(
 # Incluir los routers
 app.include_router(system_router)
 # app.include_router(user_router)
-
 app.include_router(gestionUsuario_router)
 app.include_router(gestionSuscripciones_router)
 app.include_router(gestionServicios_router)
 app.include_router(reporter_router)
-
 app.include_router(panelControl_router)
+app.include_router(subscriptionUser_router)
 
 
 # Evento de inicio de la aplicación para establecer el pool de conexiones

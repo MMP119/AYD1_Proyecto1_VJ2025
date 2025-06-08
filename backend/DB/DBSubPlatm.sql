@@ -198,3 +198,23 @@ INSERT INTO Notification (UserId, Message, Type, NotificationDate, ReadStatus) V
 -- INNER JOIN PLAN AS p ON P.PLANID = s.SERVICEID
 -- INNER JOIN USER AS us ON us.USERID = p.PLANID;
 -- SELECT * FROM SERVICE;
+
+
+-- Suscripciones asociadas a un usuario
+
+/*
+SELECT 
+	u.name as NameUser,
+	srv.Name as Servicio,
+	p.Type as TipoPlan,
+	s.StartDate as FechaInicio,
+	s.EndDate as FechaFin,
+	s.Status as Estado
+FROM User u
+JOIN Subscription s ON u.UserId = s.UserId
+JOIN Plan p ON s.PlanId = p.PlanId
+JOIN Service srv ON p.ServiceId = srv.ServiceId
+ORDER BY s.StartDate DESC;
+*/
+
+-- SELECT SubscriptionId, Status FROM Subscription WHERE UserId = 9 AND Status = 'active';
