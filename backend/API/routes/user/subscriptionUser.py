@@ -5,7 +5,6 @@ import aiomysql
 
 router = APIRouter()
 
-# Función para obtener la conexión a la base de datos
 async def get_db_connection(request: Request):
     pool = await get_db_pool(request.app)
     conn = await pool.acquire()

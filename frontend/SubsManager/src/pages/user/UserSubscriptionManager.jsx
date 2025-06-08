@@ -5,19 +5,19 @@ import url_fetch from '../../enviroment';
 import { useNavigate } from "react-router-dom";
 
 export default function PerfilUsuario() {
-  const { user } = useAuth(); // Aquí obtenemos el usuario logueado
+  const { user } = useAuth(); 
 
   const [suscripciones, setSuscripciones] = useState([]);
   const [mensaje, setMensaje] = useState({ text: "", type: "" });
   const navigate = useNavigate();
 
-  // Obtener las suscripciones del usuario logueado
+
   useEffect(() => {
     const fetchSuscripciones = async () => {
       try {
         const response = await fetch(`${url_fetch}/subscription/${user.id}`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,  // Si usas token para la autenticación
+            Authorization: `Bearer ${localStorage.getItem("token")}`,  
           },
         });
 
@@ -36,30 +36,29 @@ export default function PerfilUsuario() {
     if (user?.id) {
       fetchSuscripciones();
     }
-  }, [user?.id]); // Dependemos de `user.id` para realizar la solicitud
+  }, [user?.id]); 
 
-  // Función para cancelar suscripción
+
 const cancelarSuscripcion = async (subscriptionId) => {
   const confirmar = confirm("¿Seguro que deseas cancelar esta suscripción?");
   if (!confirmar) return;
 
   try {
-    // Llamada al backend para cancelar la suscripción con el SubscriptionId
+
     const response = await fetch(`${url_fetch}/subscription/cancelled/${user.id}/${subscriptionId}`, {
-      method: "PUT",  // Usamos PUT porque estamos modificando la suscripción
+      method: "PUT", 
     });
 
     const data = await response.json();
 
     if (data.success) {
-      // Si la cancelación fue exitosa, actualizamos el estado de las suscripciones
       setSuscripciones((prev) =>
         prev.map((s) =>
           s.SubscriptionId === subscriptionId
             ? {
                 ...s,
-                Estado: "Cancelada",  // Actualizamos el estado a "Cancelada"
-                FechaFin: new Date().toISOString().slice(0, 10), // Fecha de fin a hoy
+                Estado: "Cancelada",  
+                FechaFin: new Date().toISOString().slice(0, 10), 
               }
             : s
         )
