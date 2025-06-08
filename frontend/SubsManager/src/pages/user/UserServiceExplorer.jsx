@@ -23,15 +23,15 @@ export default function UserServiceExplorer() {
         const response = await fetch(`${url_fetch}/admin/servicios`);
         const data = await response.json();
 
-        // Agrupa servicios y planes
+        // Agrupa servicios y planes según la nueva respuesta
         const serviciosMap = {};
         const planesArr = [];
 
-        data.servicios.forEach(item => {
+        (data.planes_servicios || []).forEach(item => {
           if (!serviciosMap[item.ServiceId]) {
             serviciosMap[item.ServiceId] = {
               ServiceId: item.ServiceId,
-              Name: item.Name,
+              Name: item.ServiceName,
               Category: item.Category,
               Description: item.Description,
             };
