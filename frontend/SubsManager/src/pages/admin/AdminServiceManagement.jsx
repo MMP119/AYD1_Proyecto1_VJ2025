@@ -21,21 +21,17 @@ export default function AdminServiceManagement() {
       try {
         const response = await fetch(`${url_fetch}/admin/servicios`);
         const data = await response.json();
-        // Agrupar por ServiceId y tomar el primer plan (para simplificar)
-        const grouped = {};
-        data.servicios.forEach(item => {
-          if (!grouped[item.ServiceId]) {
-            grouped[item.ServiceId] = {
-              id: item.ServiceId,
-              name: item.Name,
-              category: item.Category,
-              description: item.Description,
-              price: item.Price,
-              plan: item.PlanType, // Aquí se mantiene el valor tal como viene del backend ("monthly"/"annual")
-            };
-          }
-        });
-        setServices(Object.values(grouped));
+        // Procesar la respuesta según la nueva API
+        setServices(
+          (data.planes_servicios || []).map(item => ({
+            id: item.ServiceId,
+            name: item.ServiceName,
+            category: item.Category,
+            description: item.Description,
+            price: item.Price,
+            plan: item.PlanType, // "monthly" o "annual"
+          }))
+        );
       } catch (error) {
         setServices([]);
       } finally {
