@@ -105,7 +105,7 @@ async def register_user(request: Request, user_data: UserData, background_tasks:
 
 
 
-@router.post("/confirmEmail")
+@router.post("/confirmEmail")#para confirmar el email al registrarse
 async def confirm_email(request: Request, data: ConfirmData):
 
     pool, conn = await get_db_connection(request)

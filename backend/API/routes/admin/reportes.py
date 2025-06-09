@@ -10,7 +10,6 @@ Endpoints para generar reportes de suscripciones:
 - Total de ingresos por suscripciones
 """
 
-# Modelos de respuesta (opcional, para documentación)
 class SuscripcionUsuario(BaseModel):
     Usuario: str
     Servicio: str
