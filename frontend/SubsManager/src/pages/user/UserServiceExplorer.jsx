@@ -215,20 +215,12 @@ export default function UserServiceExplorer() {
 
             <div className="mb-4">
               <label className="block mb-1">Método de Pago:</label>
-              <select
-                value={metodoPago}
-                onChange={(e) => setMetodoPago(e.target.value)}
-                className="w-full border px-3 py-2 rounded-md"
-              >
-                {["Tarjeta", "Efectivo", "Cartera Digital"].map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+              <div className="w-full border px-3 py-2 rounded-md bg-gray-100 text-gray-700">
+                Cartera Digital
+              </div>
             </div>
 
-            {metodoPago === "Cartera Digital" && (
-              <p className="text-sm text-gray-600 mb-4">Saldo actual: ${userWalletBalance}</p>
-            )}
+            <p className="text-sm text-gray-600 mb-4">Saldo actual: ${userWalletBalance}</p>
 
             <div className="flex justify-end gap-2">
               <button onClick={() => setIsOpen(false)} className="px-4 py-2 rounded bg-gray-300">

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
 import url_fetch from "../../enviroment";
 import { useAuth } from "../../context/AuthContext";
+import { Dialog } from "@headlessui/react";
 
 export default function UserPaymentMethods() {
     const { user } = useAuth();
@@ -13,8 +14,12 @@ export default function UserPaymentMethods() {
     const [errorRecarga, setErrorRecarga] = useState("");
     const [errorMetodo, setErrorMetodo] = useState("");
     const [loading, setLoading] = useState(true);
+    const [modalEfectivoOpen, setModalEfectivoOpen] = useState(false);
+    const [saldoEfectivoEdit, setSaldoEfectivoEdit] = useState("");
+    const [metodoEfectivoId, setMetodoEfectivoId] = useState(null);
+    const [errorSaldoEfectivo, setErrorSaldoEfectivo] = useState("");
+    const [metodoRecarga, setMetodoRecarga] = useState("");
 
-    // Cargar métodos y transacciones solo si hay usuario
     useEffect(() => {
         if (user && user.id) {
             setLoading(true);
@@ -33,13 +38,22 @@ export default function UserPaymentMethods() {
                 setMetodos(
                     data.data.map(pm => ({
                         id: pm[0], // PaymentMethodId
-                        tipo: pm[1] === "card" ? "Tarjeta" : "Efectivo",
+                        tipo: pm[1] === "card"
+                            ? "Tarjeta"
+                            : pm[1] === "cash"
+                                ? "Efectivo"
+                                : pm[1] === "wallet"
+                                    ? "Wallet"
+                                    : pm[1],
                         numero: pm[2] ? `**** **** **** ${pm[2].slice(-4)}` : "",
                         titular: pm[3] || "",
                         vencimiento: pm[4] || "",
+                        balance: pm[5] || 0
                     }))
                 );
-                setWalletBalance(data.data[0]?.[5] || 0); // WalletBalance (del primer método, si viene)
+                // Si tienes un método wallet, puedes mostrarlo aparte si lo deseas
+                const wallet = data.data.find(pm => pm[1] === "wallet");
+                setWalletBalance(wallet ? wallet[5] : 0);
             } else {
                 setMetodos([]);
                 setWalletBalance(0);
@@ -141,34 +155,96 @@ export default function UserPaymentMethods() {
         }
     }
 
-    // Recargar billetera
-    async function recargarWalletAPI() {
-        setErrorRecarga("");
-        const cantidad = parseFloat(montoRecarga);
-        if (isNaN(cantidad) || cantidad <= 0 || cantidad > 1000) {
-            setErrorRecarga("Monto inválido");
+
+    // Función para abrir el modal y setear el saldo actual
+    function abrirModalEfectivo(metodo) {
+        setMetodoEfectivoId(metodo.id);
+        setSaldoEfectivoEdit(metodo.balance ?? 0);
+        setErrorSaldoEfectivo("");
+        setModalEfectivoOpen(true);
+    }
+
+    // Función para guardar el nuevo saldo
+    async function guardarSaldoEfectivo() {
+        setErrorSaldoEfectivo("");
+        const nuevoSaldo = parseFloat(saldoEfectivoEdit);
+        if (isNaN(nuevoSaldo) || nuevoSaldo < 0) {
+            setErrorSaldoEfectivo("Saldo inválido");
             return;
         }
+        await editarSaldoEfectivoAPI(metodoEfectivoId, nuevoSaldo);
+        setModalEfectivoOpen(false);
+    }
+
+    async function editarSaldoEfectivoAPI(paymentMethodId, nuevoSaldo) {
         try {
-            const res = await fetch(`${url_fetch}/wallet/update/${user.id}`, {
-                method: "POST",
+            const res = await fetch(`${url_fetch}/payment-methods/${user.id}/${paymentMethodId}`, {
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tipo: "recharge", monto: cantidad }),
+                body: JSON.stringify({
+                    user_id: user.id,
+                    tipo: "cash",
+                    numero: null,
+                    titular: null,
+                    vencimiento: null,
+                    balance: nuevoSaldo
+                }),
             });
             const data = await res.json();
             if (data.success) {
-                setWalletBalance(Number(data.new_balance));
-                setMontoRecarga("");
-                await fetchWalletTransactions();
+                await fetchPaymentMethods();
             } else {
-                setErrorRecarga(data.detail || data.message || "Error al recargar");
+                alert(data.message || "No se pudo actualizar el saldo.");
             }
         } catch (err) {
-            setErrorRecarga("Error de red al recargar");
+            alert(err);
         }
     }
 
-    // Si el usuario no está cargado, muestra un loader simple
+    async function recargarWalletDesdeMetodo() {
+        setErrorRecarga("");
+        const monto = parseFloat(montoRecarga);
+        if (!metodoRecarga) {
+            setErrorRecarga("Selecciona un método de pago.");
+            return;
+        }
+        if (isNaN(monto) || monto <= 0) {
+            setErrorRecarga("Monto inválido.");
+            return;
+        }
+        const metodo = metodos.find(m => m.id === parseInt(metodoRecarga));
+        if (!metodo) {
+            setErrorRecarga("Método no encontrado.");
+            return;
+        }
+        if (monto > metodo.balance) {
+            setErrorRecarga("Saldo insuficiente en el método seleccionado.");
+            return;
+        }
+        try {
+            const res = await fetch(`${url_fetch}/wallet/recharge-from-method/${user.id}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    payment_method_id: metodo.id,
+                    monto: monto, // <--- aquí el cambio
+                    tipo: metodo.tipo === "Tarjeta" ? "card" : "cash"
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setMontoRecarga("");
+                setMetodoRecarga("");
+                await fetchPaymentMethods();
+                await fetchWalletTransactions();
+            } else {
+                setErrorRecarga(data.detail || data.message || "Error al recargar.");
+            }
+        } catch (err) {
+            setErrorRecarga("Error de red al recargar.");
+        }
+    }
+
     if (!user || !user.id || loading) {
         return (
             <DashboardLayout>
@@ -179,7 +255,6 @@ export default function UserPaymentMethods() {
         );
     }
 
-    // Renderizado normal
     return (
         <DashboardLayout>
             <h1 className="text-2xl font-bold mb-4">Métodos de Pago</h1>
@@ -190,6 +265,23 @@ export default function UserPaymentMethods() {
                     Saldo disponible: <strong>${walletBalance.toFixed(2)}</strong>
                 </p>
                 <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                    <div className="">
+                        <select
+                            className="border px-3 py-2 rounded w-full sm:w-auto"
+                            value={metodoRecarga}
+                            onChange={e => setMetodoRecarga(e.target.value)}
+                        >
+                            <option value="">Selecciona método</option>
+                            {metodos.filter(m => m.tipo === "Tarjeta" || m.tipo === "Efectivo").map(m => (
+                                <option key={m.id} value={m.id}>
+                                    {m.tipo} {m.tipo === "Tarjeta" ? m.numero : ""} (Saldo: ${m.balance?.toFixed(2)})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    {errorRecarga && (
+                        <p className="text-red-500 text-sm mt-1">{errorRecarga}</p>
+                    )}
                     <div className="flex-1">
                         <input
                             type="number"
@@ -206,7 +298,7 @@ export default function UserPaymentMethods() {
                     </div>
                     <button
                         className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-                        onClick={recargarWalletAPI}
+                        onClick={recargarWalletDesdeMetodo}
                     >
                         Recargar
                     </button>
@@ -222,29 +314,49 @@ export default function UserPaymentMethods() {
                     </p>
                 ) : (
                     <ul className="mb-4 space-y-2">
-                        {metodos.map((m) => (
-                            <li
-                                key={m.id}
-                                className="border-b py-3 flex justify-between items-center"
-                            >
-                                <div>
-                                    <span className="font-medium">{m.tipo}</span>
-                                    {m.tipo === "Tarjeta" && (
-                                        <div className="text-sm text-gray-600">
-                                            <p>{m.numero}</p>
-                                            <p>Titular: {m.titular}</p>
-                                            <p>Vence: {m.vencimiento}</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <button
-                                    onClick={() => eliminarMetodoAPI(m.id)}
-                                    className="text-red-600 hover:text-red-800 transition-colors"
+                        {metodos
+                            .filter(m => m.tipo !== "Wallet") // Oculta la wallet de la lista de métodos
+                            .map((m) => (
+                                <li
+                                    key={m.id}
+                                    className="border-b py-3 flex justify-between items-center"
                                 >
-                                    Eliminar
-                                </button>
-                            </li>
-                        ))}
+                                    <div>
+                                        <span className="font-medium">{m.tipo}</span>
+                                        {m.tipo === "Tarjeta" && (
+                                            <div className="text-sm text-gray-600">
+                                                <p>{m.numero}</p>
+                                                <p>Titular: {m.titular}</p>
+                                                <p>Vence: {m.vencimiento}</p>
+                                                <p>Saldo: <b>${m.balance?.toFixed(2) ?? "0.00"}</b></p>
+                                            </div>
+                                        )}
+                                        {m.tipo === "Efectivo" && (
+                                            <div className="text-sm text-gray-600">
+                                                <p>Saldo: <b>${m.balance?.toFixed(2) ?? "0.00"}</b></p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {m.tipo === "Efectivo" && (
+                                            <button
+                                                onClick={() => abrirModalEfectivo(m)}
+                                                className="text-blue-600 hover:text-blue-800 transition-colors"
+                                            >
+                                                Editar saldo
+                                            </button>
+                                        )}
+                                        {m.tipo !== "Wallet" && (
+                                            <button
+                                                onClick={() => eliminarMetodoAPI(m.id)}
+                                                className="text-red-600 hover:text-red-800 transition-colors"
+                                            >
+                                                Eliminar
+                                            </button>
+                                        )}
+                                    </div>
+                                </li>
+                            ))}
                     </ul>
                 )}
 
@@ -359,6 +471,41 @@ export default function UserPaymentMethods() {
                     </ul>
                 )}
             </div>
+
+            <Dialog open={modalEfectivoOpen} onClose={() => setModalEfectivoOpen(false)} className="fixed z-50 inset-0 overflow-y-auto">
+                <div className="flex items-center justify-center min-h-screen backdrop-blur-sm bg-white/10">
+                    <Dialog.Panel className="bg-white p-6 rounded-lg max-w-sm w-full shadow-lg">
+                        <Dialog.Title className="text-lg font-bold mb-4">Editar saldo de efectivo</Dialog.Title>
+                        <div className="mb-4">
+                            <label className="block mb-1">Nuevo saldo:</label>
+                            <input
+                                type="number"
+                                className="border px-3 py-2 rounded w-full"
+                                value={saldoEfectivoEdit}
+                                onChange={e => setSaldoEfectivoEdit(e.target.value)}
+                                min="0"
+                            />
+                            {errorSaldoEfectivo && (
+                                <p className="text-red-500 text-sm mt-1">{errorSaldoEfectivo}</p>
+                            )}
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setModalEfectivoOpen(false)}
+                                className="px-4 py-2 rounded bg-gray-300"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={guardarSaldoEfectivo}
+                                className="px-4 py-2 rounded bg-green-600 text-white"
+                            >
+                                Guardar
+                            </button>
+                        </div>
+                    </Dialog.Panel>
+                </div>
+            </Dialog>
         </DashboardLayout>
     );
 }

@@ -74,6 +74,19 @@ async def register_user(request: Request, user_data: UserData, background_tasks:
             ))
             await conn.commit()
 
+            # Obtener el UserId recién creado
+            await cursor.execute("SELECT UserId FROM User WHERE Email = %s", (user_data.email,))
+            user_row = await cursor.fetchone()
+            user_id = user_row[0] if user_row else None
+
+            # Crear wallet con saldo 0
+            if user_id:
+                await cursor.execute("""
+                    INSERT INTO PaymentMethod (UserId, Type, WalletBalance)
+                    VALUES (%s, 'wallet', 0)
+                """, (user_id,))
+                await conn.commit()
+
             # Generar y guardar el código
             codigo = secrets.token_hex(4).upper()
 
