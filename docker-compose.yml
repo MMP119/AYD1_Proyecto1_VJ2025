@@ -6,7 +6,7 @@ services:
         MYSQL_DATABASE: SubscriptionPlatform  # Crea la base de datos automáticamente
         TZ: America/Guatemala # Zona horaria
       ports:
-        - "3306:3306"  # Mapea el puerto 3306 del contenedor al puerto 3306 de la máquina local, cambiar antes de subir
+        - "3307:3306"  # Mapea el puerto 3306 del contenedor al puerto 3306 de la máquina local, cambiar antes de subir
       volumes:
         - ./backend/DB/DBSubPlatm.sql:/docker-entrypoint-initdb.d/init.sql:Z
       healthcheck:
