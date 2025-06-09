@@ -43,6 +43,29 @@ async def pay_plan_subscription(request: Request, user_id: int, plan_subscriptio
                 raise HTTPException(404, "Plan no encontrado")
             plan_id = plan_row["PlanId"]
 
+            if plan_subscription.PaymentMethod == "wallet":
+                # Verificar saldo
+                await cursor.execute(
+                    "SELECT WalletBalance FROM PaymentMethod WHERE UserId = %s AND Type = 'wallet'",
+                    (user_id,)
+                )
+                row = await cursor.fetchone()
+                saldo_actual = float(row["WalletBalance"] or 0)
+                if saldo_actual < plan_subscription.AmountPaid:
+                    raise HTTPException(400, "Saldo insuficiente en la wallet.")
+
+                # Descontar saldo
+                await cursor.execute(
+                    "UPDATE PaymentMethod SET WalletBalance = WalletBalance - %s WHERE UserId = %s AND Type = 'wallet'",
+                    (plan_subscription.AmountPaid, user_id)
+                )
+
+                # Registrar transacción
+                await cursor.execute(
+                    "INSERT INTO WalletTransaction (UserId, Type, Amount) VALUES (%s, %s, %s)",
+                    (user_id, "deduction", plan_subscription.AmountPaid)
+                )
+
             await cursor.execute(
                 """
                 INSERT INTO Subscription 
