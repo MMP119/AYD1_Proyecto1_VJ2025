@@ -9,12 +9,10 @@ from routes.admin.gestionSerivicios import router as gestionServicios_router
 from routes.admin.reportes import router as reporter_router
 from routes.admin.panelControl import router as panelControl_router
 from routes.user.subscriptionUser import router as subscriptionUser_router
-<<<<<<< HEAD
-from scheduler import start_scheduler
-=======
 from routes.user.paymentMethodUser import router as paymentMethodUser_router
 from routes.user.billsUser import router as billsUser_router
->>>>>>> feature/Estadisticas-202103206
+from scheduler import start_scheduler
+
 
 
 # Configurar logging
