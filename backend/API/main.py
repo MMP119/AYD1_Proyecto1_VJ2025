@@ -9,7 +9,12 @@ from routes.admin.gestionSerivicios import router as gestionServicios_router
 from routes.admin.reportes import router as reporter_router
 from routes.admin.panelControl import router as panelControl_router
 from routes.user.subscriptionUser import router as subscriptionUser_router
+<<<<<<< HEAD
 from scheduler import start_scheduler
+=======
+from routes.user.paymentMethodUser import router as paymentMethodUser_router
+from routes.user.billsUser import router as billsUser_router
+>>>>>>> feature/Estadisticas-202103206
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -35,7 +40,8 @@ app.include_router(gestionServicios_router)
 app.include_router(reporter_router)
 app.include_router(panelControl_router)
 app.include_router(subscriptionUser_router)
-
+app.include_router(paymentMethodUser_router)
+app.include_router(billsUser_router)
 
 # Evento de inicio de la aplicación para establecer el pool de conexiones
 @app.on_event("startup")
