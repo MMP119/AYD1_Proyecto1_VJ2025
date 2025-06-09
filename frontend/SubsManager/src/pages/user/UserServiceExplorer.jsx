@@ -61,6 +61,23 @@ export default function UserServiceExplorer() {
     fetchServicios();
   }, []);
 
+  // --- Cambia esto para que fetchWalletBalance esté disponible en todo el componente ---
+  const fetchWalletBalance = async () => {
+    try {
+      const res = await fetch(`${url_fetch}/wallet/balance/${user.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setUserWalletBalance(data.balance);
+      }
+    } catch (error) {
+      console.error("Error fetching wallet balance:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchWalletBalance();
+  }, [user.id]);
+
   const serviciosFiltrados = useMemo(() => {
     return servicios.filter(s =>
       s.Name.toLowerCase().includes(busqueda.toLowerCase()) &&
@@ -78,7 +95,6 @@ export default function UserServiceExplorer() {
   const obtenerPrecioPlan = (planId) => {
     return planes.find(p => p.PlanId === planId)?.Price || 0;
   };
-
 
   const suscribirse = async () => {
     const precio = obtenerPrecioPlan(plan);
@@ -110,15 +126,14 @@ export default function UserServiceExplorer() {
       plant_type = "annual";
     }
 
-
     try {
       const res = await fetch(
-        `${url_fetch}/pay/plan/${user.id}`,  // user.id del contexto
+        `${url_fetch}/pay/plan/${user.id}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            service_id: parseInt(plan.split("-")[0], 10),  // Sale id del serivicio y el tipo del plan...
+            service_id: parseInt(plan.split("-")[0], 10),
             plant_type,
             start_date,
             end_date,
@@ -134,6 +149,7 @@ export default function UserServiceExplorer() {
       } else {
         alert("Suscripción exitosa!");
         setIsOpen(false);
+        await fetchWalletBalance(); // <-- Actualiza el saldo de la cartera después de la compra
       }
       
     } catch (err) {

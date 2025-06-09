@@ -330,3 +330,25 @@ async def recharge_wallet_from_method(user_id: int, data: dict, request: Request
         await conn.commit()
 
     return {"success": True, "message": "Recarga exitosa"}
+
+@router.get("/wallet/balance/{user_id}")
+async def get_wallet_balance(user_id: int, request: Request):
+    """
+    Devuelve el saldo actual de la wallet del usuario.
+    """
+    try:
+        pool = await get_db_pool(request.app)
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("""
+                    SELECT WalletBalance
+                    FROM PaymentMethod
+                    WHERE UserId = %s AND Type = 'wallet'
+                    LIMIT 1
+                """, (user_id,))
+                row = await cursor.fetchone()
+                if not row:
+                    return {"success": False, "balance": 0}
+                return {"success": True, "balance": float(row[0])}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener el saldo de la wallet: {str(e)}")

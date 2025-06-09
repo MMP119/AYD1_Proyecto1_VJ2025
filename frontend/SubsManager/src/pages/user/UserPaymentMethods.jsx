@@ -279,9 +279,6 @@ export default function UserPaymentMethods() {
                             ))}
                         </select>
                     </div>
-                    {errorRecarga && (
-                        <p className="text-red-500 text-sm mt-1">{errorRecarga}</p>
-                    )}
                     <div className="flex-1">
                         <input
                             type="number"
