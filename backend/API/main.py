@@ -12,6 +12,7 @@ from routes.user.subscriptionUser import router as subscriptionUser_router
 from routes.user.paymentMethodUser import router as paymentMethodUser_router
 from routes.user.billsUser import router as billsUser_router
 
+
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,6 +37,8 @@ app.include_router(gestionServicios_router)
 app.include_router(reporter_router)
 app.include_router(panelControl_router)
 app.include_router(subscriptionUser_router)
+
+# Incluir los routers de usuario
 app.include_router(paymentMethodUser_router)
 app.include_router(billsUser_router)
 
