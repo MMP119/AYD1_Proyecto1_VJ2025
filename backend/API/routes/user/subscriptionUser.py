@@ -14,7 +14,8 @@ async def get_db_connection(request: Request):
 
 
 class PlanSubscription(BaseModel):
-    plan_id: int
+    service_id: int
+    plant_type: str  # Tipo de plan (mounthly, annual)
     start_date: str  # Formato 'YYYY-MM-DD'
     end_date: str    # Formato 'YYYY-MM-DD'
     AmountPaid: float # Monto pagado
@@ -29,7 +30,19 @@ async def pay_plan_subscription(request: Request, user_id: int, plan_subscriptio
     """
     pool, conn = await get_db_connection(request)
     try:
-        async with conn.cursor() as cursor:
+        async with conn.cursor(aiomysql.DictCursor) as cursor:
+
+            #plan_subscription es el id del ServiceId, entonces debemos obtener el PlanId a partir de ese ServiceId
+            await cursor.execute(
+                """
+                SELECT PlanId FROM Plan WHERE ServiceId = %s AND Type = %s
+                """, (plan_subscription.service_id, plan_subscription.plant_type)
+            )
+            plan_row = await cursor.fetchone()
+            if not plan_row:
+                raise HTTPException(404, "Plan no encontrado")
+            plan_id = plan_row["PlanId"]
+
             await cursor.execute(
                 """
                 INSERT INTO Subscription 
@@ -38,7 +51,7 @@ async def pay_plan_subscription(request: Request, user_id: int, plan_subscriptio
                 """,
                 (
                 user_id,
-                plan_subscription.plan_id,
+                int(plan_id),
                 plan_subscription.start_date,
                 plan_subscription.end_date,
                 plan_subscription.AmountPaid,
@@ -56,7 +69,8 @@ async def pay_plan_subscription(request: Request, user_id: int, plan_subscriptio
             user_info = await cursor.fetchone()
             if not user_info:
                 raise HTTPException(status_code=404, detail="Usuario no encontrado")
-            user_name, user_email = user_info
+            user_name = user_info["Name"]
+            user_email = user_info["Email"]
 
             #Enviar confirmación de pago
             background_tasks.add_task(
