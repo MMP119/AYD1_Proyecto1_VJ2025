@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Dialog } from "@headlessui/react";
 import DashboardLayout from "../../components/DashboardLayout";
 import url_fetch from '../../enviroment';
+import { useAuth } from "../../context/AuthContext";
 
 export default function UserServiceExplorer() {
   const [busqueda, setBusqueda] = useState("");
@@ -16,6 +17,8 @@ export default function UserServiceExplorer() {
   // Estados para servicios y planes
   const [servicios, setServicios] = useState([]);
   const [planes, setPlanes] = useState([]);
+
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchServicios = async () => {
@@ -76,14 +79,67 @@ export default function UserServiceExplorer() {
     return planes.find(p => p.PlanId === planId)?.Price || 0;
   };
 
-  const suscribirse = () => {
+
+  const suscribirse = async () => {
     const precio = obtenerPrecioPlan(plan);
     if (metodoPago === "Cartera Digital" && userWalletBalance < precio) {
       alert("Saldo insuficiente en la cartera digital.");
       return;
     }
+    
+    // Preparar fechas
+    const hoy = new Date();
+    const start_date = hoy.toISOString().slice(0, 10);
+    const end = new Date(hoy);
+    
+    //verificar si el plan es mensual o anual
+    end.setMonth(end.getMonth() + (plan.includes("monthly") ? 1 : 12));
+    const end_date = end.toISOString().slice(0, 10);
 
-    // Aquí iría la lógica real de suscripción
+    // Determinar el método de pago
+    let pm;
+    if (metodoPago === "Tarjeta") pm = "card";
+    else if (metodoPago === "Efectivo") pm = "cash";
+    else if (metodoPago === "Cartera Digital") pm = "wallet";
+
+    //determinar si es mensual o anual
+    let plant_type;
+    if (plan.includes("monthly")) {
+      plant_type = "monthly";
+    }else{
+      plant_type = "annual";
+    }
+
+
+    try {
+      const res = await fetch(
+        `${url_fetch}/pay/plan/${user.id}`,  // user.id del contexto
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            service_id: parseInt(plan.split("-")[0], 10),  // Sale id del serivicio y el tipo del plan...
+            plant_type,
+            start_date,
+            end_date,
+            AmountPaid: precio,
+            PaymentMethod: pm
+          })
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.detail || "Error al suscribirse");
+      } else {
+        alert("Suscripción exitosa!");
+        setIsOpen(false);
+      }
+      
+    } catch (err) {
+      console.error(err);
+      alert("Error de red. Intenta de nuevo.");
+    }
     setIsOpen(false);
   };
 

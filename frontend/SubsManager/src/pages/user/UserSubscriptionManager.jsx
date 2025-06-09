@@ -1,104 +1,94 @@
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "../../components/DashboardLayout";
+import { useAuth } from "../../context/AuthContext";
 import url_fetch from '../../enviroment';
+import { useNavigate } from "react-router-dom";
 
-export default function UserSubscriptionManager() {
+export default function PerfilUsuario() {
+  const { user } = useAuth(); 
+
   const [suscripciones, setSuscripciones] = useState([]);
-  const [servicios, setServicios] = useState([]);
-  const [planes, setPlanes] = useState([]);
+  const [mensaje, setMensaje] = useState({ text: "", type: "" });
+  const navigate = useNavigate();
 
-  // Cargar servicios y planes
-  useEffect(() => {
-    const fetchServicios = async () => {
-      try {
-        const response = await fetch(`${url_fetch}/admin/servicios`);
-        const data = await response.json();
 
-        // Agrupa servicios y planes
-        const serviciosMap = {};
-        const planesArr = [];
-
-        data.servicios.forEach(item => {
-          if (!serviciosMap[item.ServiceId]) {
-            serviciosMap[item.ServiceId] = {
-              ServiceId: item.ServiceId,
-              Name: item.Name,
-            };
-          }
-          if (item.PlanType && item.Price !== null) {
-            planesArr.push({
-              PlanId: `${item.ServiceId}-${item.PlanType}`,
-              ServiceId: item.ServiceId,
-              Type: item.PlanType,
-              Price: item.Price,
-            });
-          }
-        });
-
-        setServicios(Object.values(serviciosMap));
-        setPlanes(planesArr);
-      } catch (error) {
-        setServicios([]);
-        setPlanes([]);
-      }
-    };
-
-    fetchServicios();
-  }, []);
-
-  // Cargar suscripciones reales
   useEffect(() => {
     const fetchSuscripciones = async () => {
       try {
-        const response = await fetch(`${url_fetch}/admin/suscripciones`);
+        const response = await fetch(`${url_fetch}/subscription/${user.id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,  
+          },
+        });
+
         const data = await response.json();
-        setSuscripciones(data.suscripciones || []);
+        if (data.success) {
+          console.log(data.data);
+          setSuscripciones(data.data || []);
+        } else {
+          setMensaje({ text: "No se pudieron cargar las suscripciones", type: "error" });
+        }
       } catch (error) {
-        setSuscripciones([]);
+        setMensaje({ text: "Error al obtener suscripciones", type: "error" });
       }
     };
 
-    fetchSuscripciones();
-  }, []);
+    if (user?.id) {
+      fetchSuscripciones();
+    }
+  }, [user?.id]); 
 
-  const cancelarSuscripcion = (id) => {
-    const confirmar = confirm("¿Seguro que deseas cancelar esta suscripción?");
-    if (!confirmar) return;
 
-    setSuscripciones((prev) =>
-      prev.map((s) =>
-        s.SubscriptionId === id
-          ? {
-              ...s,
-              Status: "Cancelada",
-              EndDate: new Date().toISOString().slice(0, 10),
-            }
-          : s
-      )
-    );
-  };
+const cancelarSuscripcion = async (subscriptionId) => {
+  const confirmar = confirm("¿Seguro que deseas cancelar esta suscripción?");
+  if (!confirmar) return;
 
-  const getNombreServicio = (serviceId) =>
-    servicios.find((s) => s.ServiceId === serviceId)?.Name || "Desconocido";
+  try {
 
-  const getNombrePlan = (planId) =>
-    planes.find((p) => p.PlanId === planId)?.Type || "N/A";
+    const response = await fetch(`${url_fetch}/subscription/cancelled/${user.id}/${subscriptionId}`, {
+      method: "PUT", 
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      setSuscripciones((prev) =>
+        prev.map((s) =>
+          s.SubscriptionId === subscriptionId
+            ? {
+                ...s,
+                Estado: "Cancelada",  
+                FechaFin: new Date().toISOString().slice(0, 10), 
+              }
+            : s
+        )
+      );
+      alert("Suscripción cancelada exitosamente.");
+    } else {
+      alert("Hubo un error al cancelar la suscripción.");
+    }
+  } catch (error) {
+    console.error("Error al cancelar la suscripción:", error);
+    alert("Hubo un error al cancelar la suscripción.");
+  }
+};
 
   return (
     <DashboardLayout>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Mis Suscripciones</h1>
-        <p className="text-gray-600">Visualiza tu historial y cancela servicios activos.</p>
+        <h1 className="text-2xl font-bold">Perfil de Usuario</h1>
+        <p className="text-gray-600">Ver y actualizar tus datos personales.</p>
       </div>
 
+      {/* Mostrar las suscripciones */}
       <div className="overflow-x-auto">
         <table className="min-w-full border rounded-lg bg-white">
           <thead className="bg-gray-100">
             <tr>
               <th className="py-2 px-4 text-left">Servicio</th>
-              <th className="py-2 px-4 text-left">Plan</th>
-              <th className="py-2 px-4">Inicio</th>
-              <th className="py-2 px-4">Fin</th>
+              <th className="py-2 px-4 text-left">Tipo de Plan</th>
+              <th className="py-2 px-4">Fecha de Inicio</th>
+              <th className="py-2 px-4">Fecha de Fin</th>
               <th className="py-2 px-4">Estado</th>
               <th className="py-2 px-4">Acciones</th>
             </tr>
@@ -106,29 +96,28 @@ export default function UserSubscriptionManager() {
           <tbody>
             {suscripciones.map((sub) => (
               <tr key={sub.SubscriptionId} className="border-t">
-                <td className="py-2 px-4">{getNombreServicio(sub.ServiceId)}</td>
-                <td className="py-2 px-4">{getNombrePlan(sub.PlanId)}</td>
-                <td className="py-2 px-4">{sub.StartDate?.slice(0, 10)}</td>
-                <td className="py-2 px-4">{sub.EndDate ? sub.EndDate.slice(0, 10) : "-"}</td>
+                <td className="py-2 px-4">{sub.Servicio}</td>
+                <td className="py-2 px-4">{sub.TipoPlan}</td>
+                <td className="py-2 px-4">{sub.FechaInicio?.slice(0, 10)}</td>
+                <td className="py-2 px-4">{sub.FechaFin ? sub.FechaFin.slice(0, 10) : "-"}</td>
                 <td className="py-2 px-4">
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      sub.Status === "active"
+                      sub.Estado === "active"
                         ? "bg-green-100 text-green-700"
-                        : sub.Status === "cancelled"
+                        : sub.Estado === "cancelled"
                         ? "bg-gray-200 text-gray-600"
                         : "bg-yellow-100 text-yellow-700"
                     }`}
                   >
-                    {sub.Status}
+                    {sub.Estado}
                   </span>
                 </td>
                 <td className="py-2 px-4 text-center">
-                  {sub.Status === "active" ? (
+                  {sub.Estado === "active" ? (
                     <button
-                      // Aquí deberías implementar la lógica real de cancelación
+                      onClick={() => cancelarSuscripcion(sub.SubscriptionId)}
                       className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                      disabled
                     >
                       Cancelar
                     </button>
@@ -141,6 +130,13 @@ export default function UserSubscriptionManager() {
           </tbody>
         </table>
       </div>
+
+      {/* Mostrar mensaje de éxito o error */}
+      {mensaje.text && (
+        <div className={`mt-4 text-${mensaje.type === 'error' ? 'red' : 'green'}-500`}>
+          {mensaje.text}
+        </div>
+      )}
     </DashboardLayout>
   );
 }

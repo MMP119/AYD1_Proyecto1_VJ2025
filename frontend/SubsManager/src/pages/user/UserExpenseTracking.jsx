@@ -1,80 +1,119 @@
-import React, { useState, useMemo } from "react";
-import { ResponsivePie } from "@nivo/pie";
+import React, { useState, useMemo, useEffect } from "react";
+import { ResponsiveBar } from "@nivo/bar";
 import { ResponsiveLine } from "@nivo/line";
 import DashboardLayout from "../../components/DashboardLayout";
+import url_fetch from "../../enviroment";
+import { useAuth } from "../../context/AuthContext";
 
-const datosQuemados = [
-  { id: 1, categoria: "Streaming", monto: 10, fecha: "2025-06-01" },
-  { id: 2, categoria: "Servicios", monto: 40, fecha: "2025-06-05" },
-  { id: 3, categoria: "Comida", monto: 20, fecha: "2025-06-10" },
-  { id: 4, categoria: "Transporte", monto: 15, fecha: "2025-05-20" },
-  { id: 5, categoria: "Streaming", monto: 5, fecha: "2024-06-01" },
-  { id: 6, categoria: "Servicios", monto: 30, fecha: "2024-07-01" },
-];
+function decodeUtf8(text) {
+  if (!text) return text;
+  return text
+    .replace("MÃºsica", "Música")
+    .replace("MÃ¡", "Má")
+    .replace("Ã¡", "á")
+    .replace("Ã©", "é")
+    .replace("Ã­", "í")
+    .replace("Ã³", "ó")
+    .replace("Ãº", "ú")
+    .replace("Ã±", "ñ")
+    .replace("Ã", "í");
+}
 
 export default function SeguimientoGastos() {
-  const [periodo, setPeriodo] = useState({ anio: "2025", mes: "Todos" });
+  const { user } = useAuth();
+  const [datos, setDatos] = useState([]);
+  const [periodo, setPeriodo] = useState(() => {
+    const hoy = new Date();
+    return { anio: hoy.getFullYear().toString(), mes: "Todos" };
+  });
+
+  
+  useEffect(() => {
+    if (user && user.id) {
+      fetch(`${url_fetch}/expenses/${user.id}`)
+        .then(res => res.json())
+        .then(data => setDatos(data))
+        .catch(() => setDatos([]));
+    }
+  }, [user]);
 
   const añosDisponibles = useMemo(() => {
-    const años = datosQuemados.map(tx => new Date(tx.fecha).getFullYear());
+    const años = datos.map(tx => new Date(tx.fecha).getFullYear());
     return Array.from(new Set(años)).sort((a, b) => b - a);
-  }, []);
+  }, [datos]);
 
-  // Filtrar datos por año y mes
-  const gastosFiltrados = useMemo(() => {
-    return datosQuemados.filter(tx => {
-      const fecha = new Date(tx.fecha);
-      const anio = fecha.getFullYear().toString();
-      const mes = (fecha.getMonth() + 1).toString().padStart(2, "0");
-      if (anio !== periodo.anio) return false;
-      if (periodo.mes !== "Todos" && mes !== periodo.mes) return false;
-      return true;
-    });
-  }, [periodo]);
+  useEffect(() => {
+    if (datos.length > 0) {
+      const años = Array.from(new Set(datos.map(tx => new Date(tx.fecha).getFullYear()))).sort((a, b) => b - a);
+      if (!periodo.anio || !años.includes(Number(periodo.anio))) {
+        setPeriodo(prev => ({ ...prev, anio: años[0].toString() }));
+      }
+    } else {
+      setPeriodo(prev => ({ ...prev, anio: "" }));
+    }
+  }, [datos]);
 
-  // Agrupar por categoría para pie chart
-  const gastosPorCategoria = useMemo(() => {
-    return gastosFiltrados.reduce((acc, tx) => {
-      acc[tx.categoria] = (acc[tx.categoria] || 0) + tx.monto;
-      return acc;
-    }, {});
+const gastosFiltrados = useMemo(() => {
+  return datos.filter(tx => {
+    const fecha = new Date(tx.fecha + "T12:00:00");
+    const anio = fecha.getFullYear().toString();
+    const mes = (fecha.getMonth() + 1).toString().padStart(2, "0");
+    //console.log("TX:", tx, "anio:", anio, "mes:", mes, "periodo:", periodo.anio, periodo.mes);
+    if (anio !== periodo.anio) return false;
+    if (periodo.mes !== "Todos" && mes !== periodo.mes) return false;
+    return true;
+  });
+}, [datos, periodo]);
+
+
+
+  useEffect(() => {
+    console.log("periodo actual:", periodo);
+    console.log("gastos filtrados:", gastosFiltrados);
+  }, [gastosFiltrados, periodo]);
+
+
+  const dataParaBar = useMemo(() => {
+    return gastosFiltrados.map((tx, i) => ({
+      label: `${decodeUtf8(tx.categoria)} [${tx.id}]`, 
+      monto: tx.monto,
+      categoria: decodeUtf8(tx.categoria),
+      fecha: tx.fecha,
+      id: tx.id
+    }));
   }, [gastosFiltrados]);
 
-  // Preparar datos para gráfico de pastel
-  const dataParaPie = useMemo(() => {
-    return Object.entries(gastosPorCategoria).map(([categoria, monto]) => ({
-      id: categoria,
-      label: categoria,
-      value: monto,
-    }));
-  }, [gastosPorCategoria]);
 
-  // Para gráfico de línea: total gastado por mes en el año seleccionado
-  const totalPorMes = useMemo(() => {
+  const totalPorMesPorCategoria = useMemo(() => {
     const anio = periodo.anio;
     const meses = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, "0"));
+    const categorias = Array.from(
+      new Set(datos
+        .filter(tx => (new Date(tx.fecha + "T12:00:00").getFullYear().toString()) === anio)
+        .map(tx => decodeUtf8(tx.categoria))
+      )
+    );
 
-    const totales = meses.map(mes => {
-      const totalMes = datosQuemados
-        .filter(tx => {
-          const fecha = new Date(tx.fecha);
-          const a = fecha.getFullYear().toString();
-          const m = (fecha.getMonth() + 1).toString().padStart(2, "0");
-          return a === anio && m === mes;
-        })
-        .reduce((acc, tx) => acc + tx.monto, 0);
-      return { 
-        x: new Date(0, parseInt(mes) - 1).toLocaleString("es-ES", { month: "short" }), 
-        y: totalMes 
-      };
-    });
+    return categorias.map(categoria => ({
+      id: categoria, 
+      data: meses.map(mes => {
+        
+        const total = datos
+          .filter(tx => {
+            const fecha = new Date(tx.fecha + "T12:00:00");
+            const a = fecha.getFullYear().toString();
+            const m = (fecha.getMonth() + 1).toString().padStart(2, "0");
+            return a === anio && m === mes && decodeUtf8(tx.categoria) === categoria;
+          })
+          .reduce((acc, tx) => acc + tx.monto, 0);
+        return {
+          x: new Date(0, parseInt(mes) - 1).toLocaleString("es-ES", { month: "short" }),
+          y: total
+        };
+      })
+    }));
+  }, [datos, periodo.anio]);
 
-    return [{
-      id: "Gasto mensual",
-      color: "hsl(205, 70%, 50%)",
-      data: totales,
-    }];
-  }, [periodo.anio]);
 
   return (
     <DashboardLayout>
@@ -95,6 +134,7 @@ export default function SeguimientoGastos() {
                 value={periodo.anio}
                 onChange={e => setPeriodo({ ...periodo, anio: e.target.value })}
                 className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50 py-2 px-4"
+                disabled={añosDisponibles.length === 0}
               >
                 {añosDisponibles.map(anio => (
                   <option key={anio} value={anio}>{anio}</option>
@@ -122,97 +162,49 @@ export default function SeguimientoGastos() {
         </div>
 
         {/* Gráficos */}
-        {dataParaPie.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-            <p className="text-gray-500 text-lg">No hay datos disponibles para el periodo seleccionado</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Gráfico de pastel */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Distribución por Categoría</h3>
-              <div className="h-[400px]">
-                <ResponsivePie
-                  data={dataParaPie}
-                  margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
-                  innerRadius={0.5}
-                  padAngle={0.7}
-                  cornerRadius={3}
-                  activeOuterRadiusOffset={8}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Gráfico de barras */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Transacciones individuales</h3>
+            <div className="h-[400px]">
+              {dataParaBar.length === 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-gray-500 text-lg">No hay datos disponibles para el periodo seleccionado</p>
+                </div>
+              ) : (
+                <ResponsiveBar
+                  data={dataParaBar}
+                  keys={["monto"]}
+                  indexBy="label"
+                  margin={{ top: 40, right: 30, bottom: 90, left: 60 }}
+                  padding={0.3}
+                  layout="vertical"
                   colors={{ scheme: "nivo" }}
-                  borderWidth={1}
-                  borderColor={{ from: "color", modifiers: [["darker", 0.2]] }}
-                  arcLinkLabelsSkipAngle={10}
-                  arcLinkLabelsTextColor="#333333"
-                  arcLinkLabelsThickness={2}
-                  arcLinkLabelsColor={{ from: "color" }}
-                  arcLabelsSkipAngle={10}
-                  arcLabelsTextColor={{ from: "color", modifiers: [["darker", 2]] }}
-                  theme={{
-                    tooltip: {
-                      container: {
-                        background: '#ffffff',
-                        color: '#333333',
-                        fontSize: '12px',
-                        borderRadius: '4px',
-                        boxShadow: '0 3px 9px rgba(0, 0, 0, 0.15)'
-                      }
-                    }
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Gráfico de líneas */}
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Tendencia Mensual - {periodo.anio}</h3>
-              <div className="h-[400px]">
-                <ResponsiveLine
-                  data={totalPorMes}
-                  margin={{ top: 50, right: 60, bottom: 70, left: 60 }}
-                  xScale={{ type: "point" }}
-                  yScale={{ type: "linear", min: 0, max: "auto", stacked: false, reverse: false }}
-                  axisTop={null}
-                  axisRight={null}
                   axisBottom={{
-                    orient: "bottom",
-                    tickSize: 5,
-                    tickPadding: 5,
                     tickRotation: -45,
-                    legend: "Mes",
-                    legendOffset: 50,
+                    legend: "Servicios",
+                    legendOffset: 70,
                     legendPosition: "middle",
                   }}
                   axisLeft={{
-                    orient: "left",
-                    tickSize: 5,
-                    tickPadding: 5,
-                    tickRotation: 0,
                     legend: "Monto ($)",
                     legendOffset: -50,
                     legendPosition: "middle",
                   }}
-                  colors={{ scheme: "nivo" }}
-                  pointSize={8}
-                  pointColor={{ theme: "background" }}
-                  pointBorderWidth={2}
-                  pointBorderColor={{ from: "serieColor" }}
-                  pointLabelYOffset={-12}
-                  useMesh={true}
-                  enableArea={true}
-                  areaOpacity={0.1}
+                  tooltip={({ indexValue, value, data }) => (
+                    <div style={{ padding: 8, background: "#fff", border: "1px solid #ddd" }}>
+                      <strong>{data.categoria}</strong><br />
+                      Fecha: {data.fecha}<br />
+                      Monto: ${value}
+                    </div>
+                  )}
                   theme={{
                     axis: {
                       ticks: {
-                        text: {
-                          fontSize: 12
-                        }
+                        text: { fontSize: 12 }
                       },
                       legend: {
-                        text: {
-                          fontSize: 14,
-                          fontWeight: 'bold'
-                        }
+                        text: { fontSize: 14, fontWeight: 'bold' }
                       }
                     },
                     tooltip: {
@@ -226,10 +218,98 @@ export default function SeguimientoGastos() {
                     }
                   }}
                 />
-              </div>
+              )}
             </div>
           </div>
-        )}
+
+          {/* Gráfico de líneas */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Tendencia Mensual - {periodo.anio}</h3>
+            <div className="h-[400px] w-[550px]">
+            <ResponsiveLine
+              data={totalPorMesPorCategoria}
+              margin={{ top: 50, right: 110, bottom: 70, left: 60 }}
+              xScale={{ type: "point" }}
+              yScale={{ type: "linear", min: 0, max: 60, stacked: false, reverse: false }}
+              axisTop={null}
+              axisRight={null}
+              axisBottom={{
+                orient: "bottom",
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: -45,
+                legend: "Mes",
+                legendOffset: 50,
+                legendPosition: "middle",
+              }}
+              axisLeft={{
+                orient: "left",
+                tickSize: 5,
+                tickPadding: 5,
+                tickRotation: 0,
+                legend: "Monto ($)",
+                legendOffset: -50,
+                legendPosition: "middle",
+              }}
+              colors={{ scheme: "nivo" }}
+              pointSize={8}
+              pointColor={{ theme: "background" }}
+              pointBorderWidth={2}
+              pointBorderColor={{ from: "serieColor" }}
+              pointLabelYOffset={-12}
+              useMesh={true}
+              enableArea={true}
+              areaOpacity={0.1}
+              legends={[
+                {
+                  anchor: 'top-right', 
+                  direction: 'column',
+                  justify: false,
+                  translateX: 20,
+                  translateY: 0,
+                  itemsSpacing: 4,
+                  itemDirection: 'left-to-right',
+                  itemWidth: 100,
+                  itemHeight: 20,
+                  itemOpacity: 0.75,
+                  symbolSize: 16,
+                  symbolShape: 'circle',
+                  symbolBorderColor: 'rgba(0, 0, 0, .5)',
+                  effects: [
+                    {
+                      on: 'hover',
+                      style: {
+                        itemBackground: 'rgba(0, 0, 0, .03)',
+                        itemOpacity: 1
+                      }
+                    }
+                  ]
+                }
+              ]}
+              theme={{
+                axis: {
+                  ticks: {
+                    text: { fontSize: 12 }
+                  },
+                  legend: {
+                    text: { fontSize: 14, fontWeight: 'bold' }
+                  }
+                },
+                tooltip: {
+                  container: {
+                    background: '#ffffff',
+                    color: '#333333',
+                    fontSize: '12px',
+                    borderRadius: '4px',
+                    boxShadow: '0 3px 9px rgba(0, 0, 0, 0.15)'
+                  }
+                }
+              }}
+            />
+
+            </div>
+          </div>
+        </div>
 
         {/* Resumen de gastos */}
         <div className="bg-white rounded-xl shadow-sm p-6">
@@ -238,15 +318,21 @@ export default function SeguimientoGastos() {
             <div className="bg-blue-50 rounded-lg p-4">
               <p className="text-sm font-medium text-blue-700">Total gastado</p>
               <p className="text-2xl font-bold text-blue-900">
-                ${Object.values(gastosPorCategoria).reduce((a, b) => a + b, 0).toFixed(2)}
+                ${gastosFiltrados.reduce((a, tx) => a + tx.monto, 0).toFixed(2)}
               </p>
             </div>
             <div className="bg-green-50 rounded-lg p-4">
               <p className="text-sm font-medium text-green-700">Categoría principal</p>
               <p className="text-2xl font-bold text-green-900">
-                {Object.keys(gastosPorCategoria).length > 0 
-                  ? Object.entries(gastosPorCategoria).sort((a, b) => b[1] - a[1])[0][0]
-                  : 'N/A'}
+                {gastosFiltrados.length > 0
+                  ? Object.entries(
+                      gastosFiltrados.reduce((acc, tx) => {
+                        const categoria = decodeUtf8(tx.categoria);
+                        acc[categoria] = (acc[categoria] || 0) + tx.monto;
+                        return acc;
+                      }, {})
+                    ).sort((a, b) => b[1] - a[1])[0][0]
+                  : "N/A"}
               </p>
             </div>
             <div className="bg-purple-50 rounded-lg p-4">
