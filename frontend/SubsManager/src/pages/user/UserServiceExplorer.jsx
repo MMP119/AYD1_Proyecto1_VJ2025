@@ -81,7 +81,6 @@ export default function UserServiceExplorer() {
 
 
   const suscribirse = async () => {
-    console.log("Suscribiéndose al plan:", user.id);
     const precio = obtenerPrecioPlan(plan);
     if (metodoPago === "Cartera Digital" && userWalletBalance < precio) {
       alert("Saldo insuficiente en la cartera digital.");
@@ -103,6 +102,15 @@ export default function UserServiceExplorer() {
     else if (metodoPago === "Efectivo") pm = "cash";
     else if (metodoPago === "Cartera Digital") pm = "wallet";
 
+    //determinar si es mensual o anual
+    let plant_type;
+    if (plan.includes("monthly")) {
+      plant_type = "monthly";
+    }else{
+      plant_type = "annual";
+    }
+
+
     try {
       const res = await fetch(
         `${url_fetch}/pay/plan/${user.id}`,  // user.id del contexto
@@ -110,7 +118,8 @@ export default function UserServiceExplorer() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            plan_id: servicioSeleccionado.ServiceId,  // extraer ServiceId
+            service_id: parseInt(plan.split("-")[0], 10),  // Sale id del serivicio y el tipo del plan...
+            plant_type,
             start_date,
             end_date,
             AmountPaid: precio,
