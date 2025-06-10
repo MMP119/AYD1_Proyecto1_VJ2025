@@ -4,11 +4,6 @@ import AuthInput from "../../components/AuthInput";
 import url_fetch from '../../enviroment';
 import { useAuth } from "../../context/AuthContext";
 
-const TEST_USERS = [
-    { email: "admin@admin.com", password: "admin123", user_id: 1, user_rol: "admin", name: "Administrador" },
-    { email: "user@user.com", password: "user123", user_id: 2, user_rol: "user", name: "Usuario Demo" }
-];
-
 
 export default function Login() {
     const [form, setForm] = useState({ email: "", password: "" });
@@ -31,18 +26,6 @@ export default function Login() {
             setLoading(false);
             return;
         }
-
-        // --- USUARIOS QUEMADOS PARA PRUEBA ---
-        const testUser = TEST_USERS.find(
-            u => u.email === form.email && u.password === form.password
-        );
-        if (testUser) {
-            login({ id: testUser.user_id, role: testUser.user_rol, name : testUser.name, email: testUser.email });
-            navigate(testUser.user_rol === "admin" ? "/admin/dashboard" : "/user/dashboard");
-            setLoading(false);
-            return;
-        }
-        // --- FIN USUARIOS QUEMADOS ---
 
         try {
             const response = await fetch(`${url_fetch}/login`, {
