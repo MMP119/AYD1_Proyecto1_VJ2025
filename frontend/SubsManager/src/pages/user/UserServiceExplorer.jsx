@@ -61,6 +61,23 @@ export default function UserServiceExplorer() {
     fetchServicios();
   }, []);
 
+  // --- Cambia esto para que fetchWalletBalance esté disponible en todo el componente ---
+  const fetchWalletBalance = async () => {
+    try {
+      const res = await fetch(`${url_fetch}/wallet/balance/${user.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setUserWalletBalance(data.balance);
+      }
+    } catch (error) {
+      console.error("Error fetching wallet balance:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchWalletBalance();
+  }, [user.id]);
+
   const serviciosFiltrados = useMemo(() => {
     return servicios.filter(s =>
       s.Name.toLowerCase().includes(busqueda.toLowerCase()) &&
@@ -79,9 +96,7 @@ export default function UserServiceExplorer() {
     return planes.find(p => p.PlanId === planId)?.Price || 0;
   };
 
-
   const suscribirse = async () => {
-    console.log("Suscribiéndose al plan:", user.id);
     const precio = obtenerPrecioPlan(plan);
     if (metodoPago === "Cartera Digital" && userWalletBalance < precio) {
       alert("Saldo insuficiente en la cartera digital.");
@@ -103,14 +118,23 @@ export default function UserServiceExplorer() {
     else if (metodoPago === "Efectivo") pm = "cash";
     else if (metodoPago === "Cartera Digital") pm = "wallet";
 
+    //determinar si es mensual o anual
+    let plant_type;
+    if (plan.includes("monthly")) {
+      plant_type = "monthly";
+    }else{
+      plant_type = "annual";
+    }
+
     try {
       const res = await fetch(
-        `${url_fetch}/pay/plan/${user.id}`,  // user.id del contexto
+        `${url_fetch}/pay/plan/${user.id}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            plan_id: servicioSeleccionado.ServiceId,  // extraer ServiceId
+            service_id: parseInt(plan.split("-")[0], 10),
+            plant_type,
             start_date,
             end_date,
             AmountPaid: precio,
@@ -125,6 +149,7 @@ export default function UserServiceExplorer() {
       } else {
         alert("Suscripción exitosa!");
         setIsOpen(false);
+        await fetchWalletBalance(); // <-- Actualiza el saldo de la cartera después de la compra
       }
       
     } catch (err) {
@@ -206,20 +231,12 @@ export default function UserServiceExplorer() {
 
             <div className="mb-4">
               <label className="block mb-1">Método de Pago:</label>
-              <select
-                value={metodoPago}
-                onChange={(e) => setMetodoPago(e.target.value)}
-                className="w-full border px-3 py-2 rounded-md"
-              >
-                {["Tarjeta", "Efectivo", "Cartera Digital"].map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+              <div className="w-full border px-3 py-2 rounded-md bg-gray-100 text-gray-700">
+                Cartera Digital
+              </div>
             </div>
 
-            {metodoPago === "Cartera Digital" && (
-              <p className="text-sm text-gray-600 mb-4">Saldo actual: ${userWalletBalance}</p>
-            )}
+            <p className="text-sm text-gray-600 mb-4">Saldo actual: ${userWalletBalance}</p>
 
             <div className="flex justify-end gap-2">
               <button onClick={() => setIsOpen(false)} className="px-4 py-2 rounded bg-gray-300">

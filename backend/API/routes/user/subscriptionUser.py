@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Request, BackgroundTasks
 from database import get_db_pool
 from datetime import datetime
 import aiomysql
+from pydantic import BaseModel
+from mailer import send_email
 
 router = APIRouter()
 
@@ -9,6 +11,110 @@ async def get_db_connection(request: Request):
     pool = await get_db_pool(request.app)
     conn = await pool.acquire()
     return pool, conn
+
+
+class PlanSubscription(BaseModel):
+    service_id: int
+    plant_type: str  # Tipo de plan (mounthly, annual)
+    start_date: str  # Formato 'YYYY-MM-DD'
+    end_date: str    # Formato 'YYYY-MM-DD'
+    AmountPaid: float # Monto pagado
+    PaymentMethod: str # Método de pago
+
+
+
+@router.post("/pay/plan/{user_id}")
+async def pay_plan_subscription(request: Request, user_id: int, plan_subscription: PlanSubscription, background_tasks: BackgroundTasks):
+    """
+    Permite a un usuario suscribirse a un plan específico
+    """
+    pool, conn = await get_db_connection(request)
+    try:
+        async with conn.cursor(aiomysql.DictCursor) as cursor:
+
+            #plan_subscription es el id del ServiceId, entonces debemos obtener el PlanId a partir de ese ServiceId
+            await cursor.execute(
+                """
+                SELECT PlanId FROM Plan WHERE ServiceId = %s AND Type = %s
+                """, (plan_subscription.service_id, plan_subscription.plant_type)
+            )
+            plan_row = await cursor.fetchone()
+            if not plan_row:
+                raise HTTPException(404, "Plan no encontrado")
+            plan_id = plan_row["PlanId"]
+
+            if plan_subscription.PaymentMethod == "wallet":
+                # Verificar saldo
+                await cursor.execute(
+                    "SELECT WalletBalance FROM PaymentMethod WHERE UserId = %s AND Type = 'wallet'",
+                    (user_id,)
+                )
+                row = await cursor.fetchone()
+                saldo_actual = float(row["WalletBalance"] or 0)
+                if saldo_actual < plan_subscription.AmountPaid:
+                    raise HTTPException(400, "Saldo insuficiente en la wallet.")
+
+                # Descontar saldo
+                await cursor.execute(
+                    "UPDATE PaymentMethod SET WalletBalance = WalletBalance - %s WHERE UserId = %s AND Type = 'wallet'",
+                    (plan_subscription.AmountPaid, user_id)
+                )
+
+                # Registrar transacción
+                await cursor.execute(
+                    "INSERT INTO WalletTransaction (UserId, Type, Amount) VALUES (%s, %s, %s)",
+                    (user_id, "deduction", plan_subscription.AmountPaid)
+                )
+
+            await cursor.execute(
+                """
+                INSERT INTO Subscription 
+                (UserId, PlanId, StartDate, EndDate, AmountPaid, PaymentMethod)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (
+                user_id,
+                int(plan_id),
+                plan_subscription.start_date,
+                plan_subscription.end_date,
+                plan_subscription.AmountPaid,
+                plan_subscription.PaymentMethod
+                )
+            )
+            await conn.commit()
+
+            #obtener el nombre del cliente, así como su email
+            await cursor.execute(
+                """
+                SELECT Name, Email FROM User WHERE UserId = %s
+                """, (user_id,)
+            )
+            user_info = await cursor.fetchone()
+            if not user_info:
+                raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            user_name = user_info["Name"]
+            user_email = user_info["Email"]
+
+            #Enviar confirmación de pago
+            background_tasks.add_task(
+                send_email,
+                "Pago realizado con éxito",
+                user_email,
+                "confirm_payment.html",
+                {
+                    "name": user_name, 
+                    "amount": plan_subscription.AmountPaid,
+                }
+            )
+
+        return {"success": True, "message": "Suscripción exitosa"}
+
+    except Exception as e:
+        raise HTTPException(500, f"Error al procesar la suscripción: {e}")
+    finally:
+        pool.release(conn)
+
+
 
 
 @router.get("/subscription/{user_id}")

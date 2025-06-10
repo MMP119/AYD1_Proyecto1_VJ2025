@@ -18,26 +18,32 @@ class Service(BaseModel):
 
 router = APIRouter()
 
-@router.get("/admin/servicios")  # Listar servicios
+@router.get("/admin/servicios")  # Listar todos los planes y sus servicios relacionados
 async def listar_servicios(request: Request):
     try:
         pool = await get_db_pool(request.app)
 
         async with pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cursor:
-                get_services_sql = """
-                    SELECT s.ServiceId, s.Name, s.Category, s.Description, 
-                            p.Type AS PlanType, p.Price
-                    FROM Service s
-                    JOIN Plan p ON s.ServiceId = p.ServiceId
+                get_plans_sql = """
+                    SELECT 
+                        s.ServiceId, 
+                        s.Name AS ServiceName, 
+                        s.Category, 
+                        s.Description, 
+                        p.PlanId,
+                        p.Type AS PlanType, 
+                        p.Price
+                    FROM Plan p
+                    JOIN Service s ON p.ServiceId = s.ServiceId
                 """
-                await cursor.execute(get_services_sql)
-                servicios = await cursor.fetchall()
+                await cursor.execute(get_plans_sql)
+                planes_servicios = await cursor.fetchall()
 
-                return {"servicios": servicios}
+                return {"planes_servicios": planes_servicios}
                 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al listar servicios: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al listar planes y servicios: {str(e)}")
 
 
 @router.post("/admin/servicios")  # Registrar un nuevo servicio

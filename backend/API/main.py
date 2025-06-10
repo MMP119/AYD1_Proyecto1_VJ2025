@@ -11,6 +11,8 @@ from routes.admin.panelControl import router as panelControl_router
 from routes.user.subscriptionUser import router as subscriptionUser_router
 from routes.user.paymentMethodUser import router as paymentMethodUser_router
 from routes.user.billsUser import router as billsUser_router
+from scheduler import start_scheduler
+
 
 
 # Configurar logging
@@ -48,8 +50,10 @@ async def startup_event():
     try:
         await get_db_pool(app)
         logger.info("Conexión a la base de datos establecida")
+        start_scheduler(app)  # Iniciar el scheduler
+        logger.info("Scheduler iniciado")
     except Exception as e:
-        logger.error(f"Error al conectar a la base de datos: {e}")
+        logger.error(f"Error al: {e}")
 
 # Evento de cierre de la aplicación para cerrar el pool de conexiones
 @app.on_event("shutdown")
