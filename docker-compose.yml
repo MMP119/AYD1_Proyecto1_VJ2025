@@ -35,18 +35,18 @@ services:
     networks:
       - ayd-net
   
-  frontend:
-    build:
-      context: ./frontend/SubsManager
-      dockerfile: Dockerfile
+  # frontend:
+  #   build:
+  #     context: ./frontend/SubsManager
+  #     dockerfile: Dockerfile
 
-    command: ["nginx", "-g", "daemon off;"]
-    depends_on:
-      - api
-    ports:
-      - "80:80"  # Mapea el puerto 80 del contenedor al puerto 80 de la máquina local ->  cambiar si es necesario
-    networks:
-      - ayd-net
+  #   command: ["nginx", "-g", "daemon off;"]
+  #   depends_on:
+  #     - api
+  #   ports:
+  #     - "80:80"  # Mapea el puerto 80 del contenedor al puerto 80 de la máquina local ->  cambiar si es necesario
+  #   networks:
+  #     - ayd-net
 
 networks:
   ayd-net:
